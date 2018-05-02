@@ -52,7 +52,26 @@
       (let-values ([(new-dfa new-seq) ((dfa-state a-dfa) seq)])
 	(run new-dfa new-seq))))
 
+;; Runs A-DFA on SEQ until it fails
+;; Then it returns the dfa and seq from the step *before* A-DFA failed
+;;
+;; If the returned sequence is empty, then the dfa ran without failing
+;; or not at all (because the given SEQ was empty)
+(define (run-until-before-fail a-dfa seq)
+  (if (or (dfa-done? a-dfa) (empty? seq))
+      (values a-dfa seq)
+      (let-values ([(new-dfa new-seq) ((dfa-state a-dfa) seq)])
+	(if (dfa-done? new-dfa)
+	    (if (dfa-accept? new-dfa)
+		(values new-dfa new-seq) ;; ran successfully all the way
+		(values a-dfa seq)) ;; that last step failed
+	    (run-until-before-fail new-dfa new-seq)))))
+
+;; dfa* is just like a dfa, but instead of pattern matching the values
+;; of the sequence to other values, it runs a dfa on the sequence
+;#(define mydfa* ())
+
 (provide dfa-accept?
 	 dfa-done?
 	 define-dfa define-dfa/autofail
-	 run)
+	 run run-until-before-fail)

@@ -48,7 +48,7 @@
 
 (define (run a-dfa seq)
   (if (or (dfa-done? a-dfa) (empty? seq))
-      a-dfa
+      (values a-dfa seq)
       (let-values ([(new-dfa new-seq) ((dfa-state a-dfa) seq)])
 	(run new-dfa new-seq))))
 

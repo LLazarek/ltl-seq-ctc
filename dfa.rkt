@@ -52,5 +52,7 @@
       (let-values ([(new-dfa new-seq) ((dfa-state a-dfa) seq)])
 	(run new-dfa new-seq))))
 
-(provide define-dfa define-dfa/autofail
+(provide dfa-accept?
+	 dfa-done?
+	 define-dfa define-dfa/autofail
 	 run)

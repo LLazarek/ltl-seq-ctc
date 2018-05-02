@@ -67,11 +67,6 @@
 		(values a-dfa seq)) ;; that last step failed
 	    (run-until-before-fail new-dfa new-seq)))))
 
-;; dfa* is just like a dfa, but instead of pattern matching the values
-;; of the sequence to other values, it runs a dfa on the sequence
-;#(define mydfa* ())
-
-(provide dfa-accept?
-	 dfa-done?
+(provide make-dfa dfa? dfa-accept? dfa-done? dfa-state
 	 define-dfa define-dfa/autofail
 	 run run-until-before-fail)

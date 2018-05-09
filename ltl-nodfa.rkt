@@ -86,7 +86,10 @@
     (let ([first-res (first-predicate world)]
 	  [then-res (then-predicate world)])
       (cond [(and first-res (not then-res))
-	     (values first-res check-first-until-then)]
+	     ;; note: returning false while in first predicate because
+	     ;; this is a *strong* until; THEN-PREDICATE *must* become
+	     ;; true for this to be true
+	     (values #f check-first-until-then)]
 
 	    [(and (not first-res) then-res)
 	     (values then-res (all-generator then-predicate))]
@@ -96,4 +99,24 @@
 
   check-first-until-then)
 
+(module+ test
+ (define a-until-b-gen (until-generator (curry equal? 'a)
+					(curry equal? 'b)))
 
+ (check-true (check-generator a-until-b-gen '(a b)))
+ (check-true (check-generator a-until-b-gen '(a a a b)))
+ (check-true (check-generator a-until-b-gen '(a a a b b b b)))
+ (check-true (check-generator a-until-b-gen '(a b b)))
+ (check-true (check-generator a-until-b-gen '(b)))
+ (check-true (check-generator a-until-b-gen '(b b b b b)))
+
+ (check-false (check-generator a-until-b-gen '()))
+ (check-false (check-generator a-until-b-gen '(a)))
+ (check-false (check-generator a-until-b-gen '(a a)))
+ (check-false (check-generator a-until-b-gen '(a b a)))
+ (check-false (check-generator a-until-b-gen '(a a a a b a b b b b)))
+ (check-false (check-generator a-until-b-gen '(b a a a)))
+ (check-false (check-generator a-until-b-gen '(b b b b b a)))
+ (check-false (check-generator a-until-b-gen '(a a b b 1)))
+ (check-false (check-generator a-until-b-gen '(1 2 3)))
+ (check-false (check-generator a-until-b-gen '("hello"))))

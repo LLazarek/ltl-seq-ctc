@@ -64,7 +64,10 @@
   (check-false (check-generator all-a-gen '(a b)))
   (check-false (check-generator all-a-gen '()))
   (check-false (check-generator all-a-gen '(1 a)))
-  (check-false (check-generator all-a-gen '(a a a a a a "hi"))))
+  (check-false (check-generator all-a-gen '(a a a a a a "hi")))
+
+  (define all-symbols-gen (all-generator symbol?))
+  (check-false (check-generator all-symbols-gen '(1 b))))
 
 ;; Generator -> Generator
 (define (next-generator next)

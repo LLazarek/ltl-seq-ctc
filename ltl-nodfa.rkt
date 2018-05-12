@@ -229,3 +229,27 @@
   (check-false (check-generator not-all-a-gen '(a a a a a a)))
   (check-true (check-generator not-all-a-gen '(a b))))
 
+
+(define (or-generator a-gen b-gen)
+  (λ (world)
+    (let-values ([(a-accept? a-gen/new) (apply-generator a-gen world)]
+                 [(b-accept? b-gen/new) (apply-generator b-gen world)])
+      (values (or a-accept? b-accept?)
+              (or-generator a-gen/new b-gen/new)))))
+
+(module+ test
+  (define or-true-gen (or-generator all-a-gen not-all-a-gen))
+  (check-true (check-generator or-true-gen '(a a a)))
+  (check-true (check-generator or-true-gen '(b 2 3 a "ashdh" #f a)))
+  ;; False because both components require at least one element to become true
+  (check-false (check-generator or-true-gen '()))
+
+  (define next-is-number-or-all-b-gen
+    (or-generator (next-generator (first-generator number?))
+                  (all-generator (curry equal? 'b))))
+  (check-true (check-generator next-is-number-or-all-b-gen '(b 1 b b b)))
+  (check-true (check-generator next-is-number-or-all-b-gen '(b b b b)))
+  (check-true (check-generator next-is-number-or-all-b-gen '(b 1 "b" #f)))
+  (check-true (check-generator next-is-number-or-all-b-gen '(c -200 "a" #f)))
+  (check-false (check-generator next-is-number-or-all-b-gen '(c b "a" #f)))
+  (check-false (check-generator next-is-number-or-all-b-gen '(b b b b #f))))

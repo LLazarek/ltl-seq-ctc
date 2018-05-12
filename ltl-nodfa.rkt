@@ -184,6 +184,48 @@
 ;; Generator -> Generator
 (define (not-generator gen)
   (λ (world)
-    (let-values ([(res new-gen) (gen world)])
-      (values (not res) (not-generator new-gen)))))
+    (let-values ([(res new-gen) (apply-generator gen world)])
+      (values (not res)
+              (not-generator (or new-gen
+                                 (all-generator true-pred)))))))
+
+(module+ test
+  (define not-first-number-then-all-symbols
+    (not-generator first-number-then-all-symbols))
+  (check-false (check-generator not-first-number-then-all-symbols
+                               '(42 a b c c)))
+  (check-false (check-generator not-first-number-then-all-symbols
+                               '(1000.0 b b kl g r edcsdsvc f)))
+  (check-true (check-generator not-first-number-then-all-symbols
+                                '(1 2 b 3 kl g r edcsdsvc f)))
+  (check-true (check-generator not-first-number-then-all-symbols
+                                '(1)))
+
+  (define not-a-until-b-gen (not-generator a-until-b-gen))
+  (check-false (check-generator not-a-until-b-gen '(a b b)))
+  (check-false (check-generator not-a-until-b-gen '(b)))
+  (check-true (check-generator not-a-until-b-gen '(b b b b b a)))
+  (check-true (check-generator not-a-until-b-gen '(a a b b 1)))
+
+  (define not-next-starts-with-number-gen
+    (not-generator next-starts-with-number-gen))
+  (check-false (check-generator not-next-starts-with-number-gen '("nan" 2 a)))
+  (check-false (check-generator not-next-starts-with-number-gen
+                                '("nan" 2 a "b" 3)))
+  (check-true (check-generator not-next-starts-with-number-gen '(1 a)))
+  (check-true (check-generator not-next-starts-with-number-gen '(a a)))
+
+  (define not-next-is-all-a-gen (not-generator next-is-all-a-gen))
+  (check-false (check-generator not-next-is-all-a-gen '(#f a a a a a a)))
+  (check-false (check-generator not-next-is-all-a-gen '(b a a a a a a)))
+  (check-true (check-generator not-next-is-all-a-gen '(a b c)))
+  (check-true (check-generator not-next-is-all-a-gen '(a a c)))
+
+  (define not-first-a-gen (not-generator first-a-gen))
+  (check-false (check-generator not-first-a-gen '(a b)))
+  (check-true (check-generator not-first-a-gen '(b a b)))
+
+  (define not-all-a-gen (not-generator all-a-gen))
+  (check-false (check-generator not-all-a-gen '(a a a a a a)))
+  (check-true (check-generator not-all-a-gen '(a b))))
 

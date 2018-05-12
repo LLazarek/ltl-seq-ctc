@@ -29,7 +29,9 @@
 ;; in a sequence
 (define (first-generator pred)
   (λ (world)
-    (values (pred world) #f)))
+    (let* ([res (pred world)]
+           [res-gen (all-generator (make-const-pred res))])
+      (values res res-gen))))
 
 (module+ test
   (define first-a-gen (first-generator (curry equal? 'a)))

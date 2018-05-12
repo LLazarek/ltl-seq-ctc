@@ -117,7 +117,12 @@
 	       (values #f (check-first-until-then first-gen/new
 						  then-gen/current))]
 
-	      [(and (not first-res) then-res)
+              ;; todo confirm: until doesn't say anything about
+              ;; first-gen's truth once then-gen becomes true
+              ;; Alternative: (when then-gen becomes true first-gen
+              ;; must be false)
+              ;; [(and (not first-res) then-res)
+	      [then-res
 	       (values then-res then-gen/new)]
 
 	      [else
@@ -161,8 +166,14 @@
 			      ;; should be true because A is never true and B is
 			      '(b b kl g r edcsdsvc f)))
 
+ ;; todo confirm: should this check succeed?
+ ;; I could argue yes bc 1 satisfies A, so the whole sequence
+ ;; satisfies A, and after 2 the rest satisfies B
+ (check-true (check-generator first-number-then-all-symbols
+                              '(1 2 b b kl g r edcsdsvc f)))
+
  (check-false (check-generator first-number-then-all-symbols
-			       '(1 2 b b kl g r edcsdsvc f)))
+                              '(1 2 b 3 f)))
  (check-false (check-generator first-number-then-all-symbols
 			       '(1 b b kl g r "edcsdsvc" f)))
  (check-false (check-generator first-number-then-all-symbols

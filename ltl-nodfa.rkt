@@ -328,3 +328,36 @@
                                 '(1 2 a b)))
   (check-false (check-generator if-next-is-2-then-all-even
                                 '(a 2 4 6))))
+
+(define/contract (iff-generator left-gen right-gen)
+  (-> generator/c generator/c generator/c)
+
+  (and-generator (implies-generator left-gen right-gen)
+                 (implies-generator right-gen left-gen)))
+
+(module+ test
+  (define next-is-2-iff-all-even
+    (iff-generator (next-generator (first-generator (curry equal? 2)))
+                   (all-generator (and/c number? even?))))
+  ;; Premise satisfied and so is conclusion
+  (check-true (check-generator next-is-2-iff-all-even
+                               '(0 2 4 6)))
+  ;; Premise not satisfied...
+  ;; But conclusion is
+  (check-false (check-generator next-is-2-iff-all-even
+                               '(42)))
+  (check-false (check-generator next-is-2-iff-all-even
+                               '(2 4 6 8)))
+  ;; and neither is conclusion
+  (check-true (check-generator next-is-2-iff-all-even
+                               '(a b c)))
+  (check-true (check-generator next-is-2-iff-all-even
+                               '(1 3 5)))
+
+  ;; Premise satisfied but not conclusion
+  (check-false (check-generator next-is-2-iff-all-even
+                                '(1 2 3 5)))
+  (check-false (check-generator next-is-2-iff-all-even
+                                '(1 2 a b)))
+  (check-false (check-generator next-is-2-iff-all-even
+                                '(a 2 4 6))))

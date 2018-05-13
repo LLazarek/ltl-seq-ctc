@@ -271,3 +271,27 @@
   (check-true (check-generator next-is-number-or-all-b-gen '(c -200 "a" #f)))
   (check-false (check-generator next-is-number-or-all-b-gen '(c b "a" #f)))
   (check-false (check-generator next-is-number-or-all-b-gen '(b b b b #f))))
+
+
+(define/contract (and-generator a-gen b-gen)
+  (-> generator/c generator/c generator/c)
+  (not-generator (or-generator (not-generator a-gen)
+                               (not-generator b-gen))))
+(module+ test
+  (define and-false-gen (and-generator all-a-gen not-all-a-gen))
+  (check-false (check-generator and-false-gen '(a a a)))
+  (check-false (check-generator and-false-gen '(b 2 3 a "ashdh" #f a)))
+  (check-false (check-generator and-false-gen '()))
+
+  (define all-even-and-next-is-2-gen
+    (and-generator (next-generator (first-generator (curry = 2)))
+                   (all-generator (and/c number? even?))))
+  (check-true (check-generator all-even-and-next-is-2-gen '(16 2)))
+  (check-true (check-generator all-even-and-next-is-2-gen '(0 2 4 6 8)))
+  (check-true (check-generator all-even-and-next-is-2-gen '(2 2 2)))
+  ;; False because next isn't 2: it's not anything.
+  (check-false (check-generator all-even-and-next-is-2-gen '(42)))
+  (check-false (check-generator all-even-and-next-is-2-gen '(1 2)))
+  (check-false (check-generator all-even-and-next-is-2-gen '(0 2 3 4 6)))
+  (check-false (check-generator all-even-and-next-is-2-gen '(0 2 b)))
+  (check-false (check-generator all-even-and-next-is-2-gen '(0 2 #f 5))))

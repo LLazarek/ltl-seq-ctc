@@ -3,17 +3,25 @@
 (module+ test
   (require rackunit))
 
-;; Generator := (World -> (values Bool Generator)) | #f
+(define world/c any/c)
 
-;; Generator Seq[World] -> (values Bool Generator)
-(define (check-generator generator seq [init #f])
+;; Generator := (World -> (values Bool Generator)) | #f
+(define generator/c
+  (or/c false? (-> world/c (values boolean? (recursive-contract generator/c)))))
+
+;; Generator Seq[World] -> Bool
+(define/contract (check-generator generator seq [init #f])
+  (-> generator/c (listof world/c) boolean?)
+
   (if (or (empty? seq) (false? generator))
       init
       (let-values ([(accept? next-generator) (generator (first seq))])
 	(check-generator next-generator (rest seq) accept?))))
 
 ;; Generator World -> (values Bool Generator)
-(define (apply-generator gen el)
+(define/contract (apply-generator gen el)
+  (-> generator/c world/c (values boolean? generator/c))
+
   (if gen
       (gen el)
       (values #f #f)))
@@ -27,7 +35,8 @@
 ;;
 ;; Produces a generator that checks PRED against the first element
 ;; in a sequence
-(define (first-generator pred)
+(define/contract (first-generator pred)
+  (-> predicate/c generator/c)
   (λ (world)
     (let* ([res (pred world)]
            [res-gen (all-generator (make-const-pred res))])
@@ -48,7 +57,9 @@
 ;;
 ;; Produces a generator that checks PRED against every element
 ;; in a sequence, only returning #t if all satisfy it
-(define (all-generator pred)
+(define/contract (all-generator pred)
+  (-> predicate/c generator/c)
+
   (define (check world)
     (let ([satisfies? (pred world)])
       (values satisfies?
@@ -70,7 +81,8 @@
   (check-false (check-generator all-symbols-gen '(1 b))))
 
 ;; Generator -> Generator
-(define (next-generator next)
+(define/contract (next-generator next)
+  (-> generator/c generator/c)
   (λ (world)
     (values #f next)))
 
@@ -103,7 +115,9 @@
   (check-false (check-generator next-starts-with-number-gen '(= "2" 3))))
 
 ;; Generator Generator -> Generator
-(define (until-generator first-gen then-gen)
+(define/contract (until-generator first-gen then-gen)
+  (-> generator/c generator/c generator/c)
+
   (define (check-first-until-then first-gen/current then-gen/current)
     (λ (world)
       (let-values ([(first-res first-gen/new)
@@ -182,7 +196,9 @@
 			       '())))
 
 ;; Generator -> Generator
-(define (not-generator gen)
+(define/contract (not-generator gen)
+  (-> generator/c generator/c)
+
   (λ (world)
     (let-values ([(res new-gen) (apply-generator gen world)])
       (values (not res)
@@ -230,7 +246,9 @@
   (check-true (check-generator not-all-a-gen '(a b))))
 
 
-(define (or-generator a-gen b-gen)
+(define/contract (or-generator a-gen b-gen)
+  (-> generator/c generator/c generator/c)
+
   (λ (world)
     (let-values ([(a-accept? a-gen/new) (apply-generator a-gen world)]
                  [(b-accept? b-gen/new) (apply-generator b-gen world)])

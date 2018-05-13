@@ -361,3 +361,34 @@
                                 '(1 2 a b)))
   (check-false (check-generator next-is-2-iff-all-even
                                 '(a 2 4 6))))
+
+(define/contract (release-generator releaser-gen held-gen)
+  (-> generator/c generator/c generator/c)
+
+  (not-generator (until-generator (not-generator releaser-gen)
+                                  (not-generator held-gen))))
+
+(define/contract (eventual-generator eventual)
+  (-> generator/c generator/c)
+
+  (until-generator (all-generator true-pred)
+                   eventual))
+
+(define/contract (global-generator always-gen)
+  (-> generator/c generator/c)
+
+  (release-generator (all-generator false-pred)
+                     always-gen))
+
+(define/contract (until-generator/weak first-gen then-gen)
+  (-> generator/c generator/c generator/c)
+
+  (or-generator (until-generator first-gen then-gen)
+                (global-generator first-gen)))
+
+(define/contract (release-generator/strong releaser-gen held-gen)
+  (-> generator/c generator/c generator/c)
+
+  (and-generator (release-generator releaser-gen held-gen)
+                 (eventual-generator releaser-gen)))
+

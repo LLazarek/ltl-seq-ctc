@@ -1,0 +1,80 @@
+Let w be the input sequence
+Let a \in w
+
+_Syntax_
+l := (/first/ p) | (/all/ p) | (/next/ l) | (/until/ l l)
+c := /true\forall/ | /false\forall/
+p := any predicate (World \to r)
+r := #t | #f
+
+_Metafunctions_
+*not_r*: r \to r
+*or_r*: r r \to r
+
+*red* (\to^a for /a/ = w(0)): l \to (r, l)
+// This is a step that consumes the first element /a/ of the remaining sequence /w/.
+// \to^\varepsilon denotes immediate transition, not on any element of the sequence.
+
+/true\forall/         \to^a (#t, /true\forall/)
+/false\forall/        \to^a (#f, /false\forall/)
+
+
+(p a) = #t
+---
+(/first/ p) \to^a (#t, /true\forall/)
+
+
+(p a) = #f
+---
+(/first/ p) \to^a (#f, /false\forall/)
+
+
+(p a) = #t
+---
+(/all/ p) \to^a (#t, (/all/ p))
+
+
+(p a) = #f
+---
+(/all/ p) \to^a (#f, /false\forall/)
+
+
+l \to^a (r, l')
+---
+(/not/ l) \to^a ((not_r r), (/not/ l'))
+// /Could also maybe think of *not* as a kind of evaluation context?/
+
+
+l_A \to^a (r_A, l_{A}')     l_B \to^a (r_B, l_{B}')
+---
+(/or/ l_A l_B) \to^a ((or_r r_A r_B), (/or/ l_{A}' l_{B}'))
+
+
+(/next/ l)      \to^a (#f, l)
+
+
+l_B \to^a (#t, l_{B}')
+---
+(/until/ l_A l_B) \to^a (#t, l_{B}')
+
+
+l_B \to^a (#f, l_{B}')     l_A \to^a (r, l_{A}')
+---
+(/until/ l_A l_B) \to^a (r, (/until/ l_{A}' l_B))
+
+
+(/and/ l_A l_B) \to^\varepsilon (/not/ (/or/ (/not/ l_A) (/not/ l_B)))
+
+(/implies/ l_A l_B) \to^\varepsilon (/or/ (/not/ l_A) l_B)
+
+(/iff/ l_A l_B) \to^\varepsilon (/and/ (/implies/ l_A l_B) (/implies/ l_B l_A))
+
+(/release/ l_A l_B) \to^\varepsilon (/not/ (/until/ (/not/ A) (/not/ B)))
+
+(/eventually/ l) \to^\varepsilon (/until/ /true\forall/ l)
+
+(/globally/ l) \to^\varepsilon (/not/ (/eventually/ (/not/ l)))
+
+(/weak-until/ l_A l_B) \to^\varepsilon (/or/ (/until/ l_A l_B) (/globally/ l_A))
+
+(/strong-release/ l_A l_B) \to^\varepsilon (/and/ (/release/ l_A l_B) (/eventually/ l_A))

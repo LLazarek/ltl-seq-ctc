@@ -11,15 +11,63 @@
      (or ltl)
      (next ltl)
      (until ltl ltl)]
-  [p ??? #| todo: how to encode any predicate? |#]
   [seq empty
        (cons seq-el seq)]
-  [seq-el ??? #| todo: how to encode anything? |#]
+  [ltl-state (state ltl r seq)]
+
+  [p pred-e]
+  [seq-el pred-v]
   [r #t
      #f]
-  [ltl-state (state ltl r seq)]) ;; No ctxs because sub-formula
-                                 ;; reduction doesn't make sense.
 
+  [pred-e x
+       (λ (x) pred-e)
+       (pred-e pred-e)
+       (if pred-e pred-e pred-e)
+       (succ pred-e)
+       (pred pred-e)
+       (zero? pred-e)
+       pred-v]
+  [pred-v r (λ (x) pred-e) zero (succ pred-v)]
+  [x variable-not-otherwise-mentioned]
+  [E hole
+     (E pred-e)
+     (pred-v E)
+     (if E pred-e pred-e)
+     (succ E)
+     (pred E)
+     (zero? E)]) ;; Only ctxs for lambda calc, because sub-formula
+                 ;; reduction doesn't make sense.
+
+
+;; write lambda calc with simple values
+;; Embed it in this language
+
+(define pred-red
+  (reduction-relation
+   ltl-lang
+   (==> ((λ (x) pred-e) pred-v)
+        ,(substitute (term pred-e) (term x) (term pred-v))
+        pred-r-app)
+   (==> (if #t pred-e_1 pred-e_2)
+        pred-e_1
+        pred-r-true)
+   (==> (if #f pred-e_1 pred-e_2)
+        pred-e_2
+        pred-r-false)
+   (==> (pred zero)
+        zero
+        pred-r-pred-z)
+   (==> (pred (succ pred-v))
+        pred-v
+        pred-r-pred-v)
+   with
+   [(--> (in-hole E a) (in-hole E b))
+    (==> a b)]))
+
+;; todo: Write a seperate reduction relation for the lambda/predicate calculus
+;; Then everywhere I check the predicate result instead check that it
+;; reduces to #t or #f
 
 (define ltl-red
   (reduction-relation
@@ -36,20 +84,28 @@
         (state true #t seq)
         ;; todo: is this how to write rule premises? Can I use bound
         ;; variables from the rule like this?
-        (side-condition (p seq-el))
+        (side-condition
+         (equal? (first (apply-reduction-relation pred-red (term (p seq-el))))
+                 (term #t)))
         r-first-true)
    (--> (state (first p) r (cons seq-el seq))
         (state false #f seq)
-        (side-condition (not (p seq-el)))
+        (side-condition
+         (equal? (first (apply-reduction-relation pred-red (term (p seq-el))))
+                 (term #f)))
         r-first-false)
 
    (--> (state (all p) r (cons seq-el seq))
         (state (all p) #t seq)
-        (side-condition (p seq-el))
+        (side-condition
+         (equal? (first (apply-reduction-relation pred-red (term (p seq-el))))
+                 (term #t)))
         r-all-true)
    (--> (state (all p) r (cons seq-el seq))
         (state false #f seq)
-        (side-condition (not (p seq-el)))
+        (side-condition
+         (equal? (first (apply-reduction-relation pred-red (term (p seq-el))))
+                 (term #f)))
         r-all-false)
 
 

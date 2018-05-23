@@ -30,14 +30,15 @@
        pred-v]
   [pred-v r (λ (x) pred-e) zero (succ pred-v)]
   [x variable-not-otherwise-mentioned]
-  [E hole
-     (E pred-e)
-     (pred-v E)
+  [E hole                 ;; Only ctxs for lambda calc, because
+     (E pred-e)           ;; sub-formula reduction doesn't make
+     (pred-v E)           ;; sense.
      (if E pred-e pred-e)
      (succ E)
      (pred E)
-     (zero? E)]) ;; Only ctxs for lambda calc, because sub-formula
-                 ;; reduction doesn't make sense.
+     (zero? E)]
+  #:binding-forms
+  (λ (x) e #:refers-to x))
 
 
 ;; write lambda calc with simple values
@@ -47,7 +48,7 @@
   (reduction-relation
    ltl-lang
    (==> ((λ (x) pred-e) pred-v)
-        ,(substitute (term pred-e) (term x) (term pred-v))
+        (term (substitute pred-e x pred-v))
         pred-r-app)
    (==> (if #t pred-e_1 pred-e_2)
         pred-e_1

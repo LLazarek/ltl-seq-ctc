@@ -262,8 +262,8 @@
                  (state/right ltl_B r_B seq)) ;; todo: write metafunction or
         (state/left (or ltl_A ltl_B) (or-metafn r_A r_B) seq))
 
-   (==> (state (next ltl) r (cons seq-el seq))
-        (state ltl #f seq)
+   (==> (state/left (next ltl) r (cons seq-el seq))
+        (state/right ltl #f seq)
         r-next)
 
 
@@ -401,4 +401,25 @@
                               (cons (succ zero) (cons #t (cons #t empty)))))
             (term (state/left (or false (all (λ (x) (if x #t #f)))) #t empty)))
 
+
+  ;; -------------------- next --------------------
+  (test-->> ltl-red
+            (term (state/left (next (all zero?)) #t
+                              (cons zero (cons zero empty))))
+            (term (state/left (all zero?) #t empty)))
+  (test-->> ltl-red
+            (term (state/left (next (all zero?)) #t
+                              (cons zero (cons zero (cons #f empty)))))
+            (term (state/left false #f empty)))
+  (test-->> ltl-red
+            (term (state/left (next (first zero?)) #t
+                              (cons zero (cons zero (cons #f empty)))))
+            (term (state/left true #t empty)))
+  (test-->> ltl-red
+            (term (state/left (next (first zero?)) #t
+                              (cons zero empty)))
+            (term (state/left (first zero?) #f empty)))
+
+
+  
   )

@@ -496,4 +496,41 @@
                                        (not false)))
                               #f
                               empty)))
-)
+
+  ;; -------------------- implies --------------------
+  ;; premise and conclusion satisfied
+  (test-->> ltl-red
+            (term (state/left (implies (first zero?) (all zero?))
+                              #f
+                              (cons zero (cons zero empty))))
+            (term (state/left (or (not true) (all zero?))
+                              #t
+                              empty)))
+  ;; premise but not conclusion satisfied
+  (test-->> ltl-red
+            (term (state/left (implies (first zero?) (all zero?))
+                              #f
+                              (cons zero (cons #f empty))))
+            (term (state/left (or (not true) false)
+                              #f
+                              empty)))
+  ;; conclusion but not premise satisfied
+  (test-->> ltl-red
+            (term (state/left (implies (not (first zero?))
+                                       (all (λ (x) (zero? (pred x))))) ;; <=1?
+                              #f
+                              (cons zero (cons (succ zero) empty))))
+            (term (state/left (or (not (not true))
+                                  (all (λ (x) (zero? (pred x)))))
+                              #t
+                              empty)))
+  ;; neither conclusion nor premise satisfied
+  (test-->> ltl-red
+            (term (state/left (implies (not (first zero?))
+                                       (all (λ (x) (zero? (pred x))))) ;; <=1?
+                              #f
+                              (cons zero (cons (succ (succ zero)) empty))))
+            (term (state/left (or (not (not true)) false)
+                              #t
+                              empty)))
+  )

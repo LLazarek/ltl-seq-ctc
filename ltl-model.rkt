@@ -13,7 +13,18 @@
        (until ltl ltl)]
   [seq empty
        (cons seq-el seq)]
-  [ltl-state (state ltl r seq)]
+  [ltl-state (state/left ltl r seq)
+             (state/mid ltl r seq)
+             (state/right ltl r seq)]
+  [meta-state (meta/not ltl-state)
+              (meta/or ltl-state ltl-state)
+              (meta/until ltl-state ltl-state ltl)]
+  [meta-E hole
+          (meta/not meta-E)
+          (meta/or meta-E ltl-state)
+          (meta/or (state/right ltl r seq) meta-E)
+          (meta/until (state/mid ltl r seq) meta-E)
+          (meta/until meta-E ltl-state)]
 
   [p predλ-e]
   [seq-el predλ-v]
@@ -21,24 +32,25 @@
      #f]
 
   [predλ-e x
+           #t #f
            (λ (x) predλ-e)
+           zero (succ predλ-v)
            (predλ-e predλ-e)
            (if predλ-e predλ-e predλ-e)
            (succ predλ-e)
            (pred predλ-e)
-           (zero? predλ-e)
-           predλ-v]
+           (zero? predλ-e)]
   [predλ-v r (λ (x) predλ-e) zero (succ predλ-v)]
   [x variable-not-otherwise-mentioned]
-  [E hole                 ;; Only ctxs for lambda calc, because
-     (E predλ-e)           ;; sub-formula reduction doesn't make
-     (predλ-v E)           ;; sense.
+  [E hole
+     (E predλ-e)
+     (predλ-v E)
      (if E predλ-e predλ-e)
      (succ E)
      (pred E)
      (zero? E)]
   #:binding-forms
-  (λ (x) e #:refers-to x))
+  (λ (x) predλ-e #:refers-to x))
 
 
 ;; write lambda calc with simple values
@@ -62,6 +74,13 @@
    (==> (pred (succ predλ-v))
         predλ-v
         predλ-r-pred-v)
+   (==> (zero? zero)
+        #t
+        predλ-r-zero)
+   (==> (zero? (succ predλ-v))
+        #f
+        predλ-r-n)
+
    with
    [(--> (in-hole E a) (in-hole E b))
     (==> a b)]))
@@ -70,18 +89,29 @@
 ;; Then everywhere I check the predicate result instead check that it
 ;; reduces to #t or #f
 
+
+(define-metafunction ltl-lang
+  not-metafn : r -> r
+  [(not-metafn #t) #f]
+  [(not-metafn #f) #t])
+(define-metafunction ltl-lang
+  or-metafn : r r -> r
+  [(or-metafn #t r) #t]
+  [(or-metafn #f #t) #t]
+  [(or-metafn #f #f) #f])
+
 (define ltl-red
   (reduction-relation
    ltl-lang
-   (--> (state true r (cons seq-el seq))
+   (==> (state true r (cons seq-el seq))
         (state true #t seq)
         r-true)
 
-   (--> (state false r (cons seq-el seq))
+   (==> (state false r (cons seq-el seq))
         (state false #f seq)
         r-false)
 
-   (--> (state (first p) r (cons seq-el seq))
+   (==> (state (first p) r (cons seq-el seq))
         (state true #t seq)
         ;; todo: is this how to write rule premises? Can I use bound
         ;; variables from the rule like this?
@@ -89,20 +119,20 @@
          (equal? (first (apply-reduction-relation predλ-red (term (p seq-el))))
                  (term #t)))
         r-first-true)
-   (--> (state (first p) r (cons seq-el seq))
+   (==> (state (first p) r (cons seq-el seq))
         (state false #f seq)
         (side-condition
          (equal? (first (apply-reduction-relation predλ-red (term (p seq-el))))
                  (term #f)))
         r-first-false)
 
-   (--> (state (all p) r (cons seq-el seq))
+   (==> (state (all p) r (cons seq-el seq))
         (state (all p) #t seq)
         (side-condition
          (equal? (first (apply-reduction-relation predλ-red (term (p seq-el))))
                  (term #t)))
         r-all-true)
-   (--> (state (all p) r (cons seq-el seq))
+   (==> (state (all p) r (cons seq-el seq))
         (state false #f seq)
         (side-condition
          (equal? (first (apply-reduction-relation predλ-red (term (p seq-el))))
@@ -110,86 +140,81 @@
         r-all-false)
 
 
-   (--> (state (not ltl_0) r_0 (cons seq-el seq))
-        (state (not ltl_1) ,(not r_1) seq)
-        ;; todo: I don't think this is right, but I can't find how to
-        ;; do this
-        (where (--> (state ltl_0 r_0 (cons seq-el seq))
-                    (state ltl_1 r_1 seq)))
-        ;; (side-condition
-        ;;  (equal? (first (apply-reduction-relation
-        ;;                  ltl-red
-        ;;                  (term (state ltl_0 r_0 (cons seq-el seq)))))
-        ;;          (term (state ltl_1 r_1 seq))))
-        r-not)
+   (==> (state/left (not ltl_0) r_0 (cons seq-el seq))
+        (meta/not (state/left ltl_0 r_0 (cons seq-el seq)))
+        r-not/meta-enter)
+   ;; Now, subterm (state/left ltl r (cons seq-el seq))
+   ;; may take a single reduction step -> (state/right ...)
+   (==> (meta/not (state/right ltl) r seq)
+        (state/left (not ltl) (not-metafn r) seq)
+        r-not/meta-exit)
 
-   (--> (state (or ltl_A_0 ltl_B_0) r_0 (cons seq-el seq))
-        (state (or ltl_A_1 ltl_B_1) ,(or r_A r_B) seq)
-        (where (--> (state ltl_A_0 r_0 (cons seq-el seq))
-                    (state ltl_A_1 r_A seq)))
-        (where (--> (state ltl_B_0 r_0 (cons seq-el seq))
-                    (state ltl_B_1 r_B seq)))
-        ;; (side-condition (equal? (apply-reduction-relation
-                                  ;; ltl-red
-                                  ;; (term (state ltl_A_0 r_0 (cons seq-el seq))))
-                                 ;; (term (state ltl_A_1 r_A seq))))
-        ;; (side-condition (equal? (apply-reduction-relation
-                                 ;; ltl-red
-                                 ;; (term (state ltl_B_0 r_0 (cons seq-el seq))))
-                                ;; (term (state ltl_B_1 r_B seq))))
-        r-or)
+   
+   (==> (state/left (or ltl_A_0 ltl_B_0) r_0 (cons seq-el seq))
+        (meta/or (state/left ltl_A_0 r_0 (cons seq-el seq))
+                 (state/left ltl_B_0 r_0 (cons seq-el seq)))
+        r-or/meta-enter)
+   ;; Now, subterms ltl_A and ltl_B can take a single step each
+   (==> (meta/or (state/right ltl_A r_A seq)
+                 (state/right ltl_B r_B seq)) ;; todo: write metafunction or
+        (state/left (or ltl_A ltl_B) (or-metafn r_A r_B) seq))
 
-   (--> (state (next ltl) r (cons seq-el seq))
+   (==> (state (next ltl) r (cons seq-el seq))
         (state ltl #f seq)
         r-next)
 
-   (--> (state (until ltl_A_0 ltl_B_0) r (cons seq-el seq))
-        (state ltl_B_1 #t seq)
-        (where (--> (state ltl_B_0 r (cons seq-el seq))
-                    (state ltl_B_1 #t seq)))
-        ;; (side-condition (equal? (apply-reduction-relation
-                                 ;; ltl-red
-                                 ;; (term (state ltl_B_0 r (cons seq-el seq))))
-                                ;; (term (state ltl_B_1 #t seq))))
-        r-until-start-B)
-   (--> (state (until ltl_A_0 ltl_B_0) r (cons seq-el seq))
-        (state (until ltl_A_1 ltl_B_0) #f seq)
-        (where (--> (state ltl_B_0 r (cons seq-el seq))
-                    (state ltl_B_1 #f seq)))
-        (where (--> (state ltl_A_0 r (cons seq-el seq))
-                    (state ltl_A_1 r_A seq)))
-        ;; (side-condition (equal? (apply-reduction-relation
-                                 ;; ltl-red
-                                 ;; (term (state ltl_B_0 r (cons seq-el seq))))
-                                ;; (term (state ltl_B_1 #f seq))))
-        ;; (side-condition (equal? (apply-reduction-relation
-                                 ;; ltl-red
-                                 ;; (term (state ltl_A_0 r (cons seq-el seq))))
-                                ;; (term (state ltl_A_1 r_A seq))))
-        r-until-still-A)
+
+   (==> (state/left (until ltl_A_0 ltl_B_0) r_0 (cons seq-el seq))
+        (meta/until (state/mid ltl_A_0 r_0 (cons seq-el seq))
+                    (state/left ltl_B_0 r_0 (cons seq-el seq))
+                    ltl_B_0)
+        r-until/meta-enter-B)
+   ;; Now, subterm ltl_B_0 can take a single step
+   (==> (meta/until (state/mid ltl_A_0 r_0 (cons seq-el seq))
+                    (state/right ltl_B #t seq)
+                    ltl_B_0)
+        (state/left ltl_B #t seq)
+        r-until/meta-exit/B-true)
+   ;; ltl_B_0 stepped to #f, so set up to let ltl_A_0 step
+   (==> (meta/until (state/mid ltl_A_0 r_0 (cons seq-el seq))
+                    (state/right ltl_B #f seq)
+                    ltl_B_0)
+        (meta/until (state/left ltl_A_0 r_0 (cons seq-el seq))
+                    (state/right ltl_B #f seq)
+                    ltl_B_0)
+        r-until/meta-enter-A)
+   ;; Now, subterm ltl_A_0 can take a single step
+   (==> (meta/until (state/right ltl_A r_A seq)
+                    (state/right ltl_B #f seq)
+                    ltl_B_0)
+        (state/left (until ltl_A ltl_B_0) r_A seq))
 
 
-   (--> (state (and ltl_A ltl_B) r seq)
+   (==> (state (and ltl_A ltl_B) r seq)
         (state (not (or (not ltl_A) (not ltl_B))) r seq)
         r-expand-and)
-   (--> (state (implies ltl_A ltl_B) r seq)
+   (==> (state (implies ltl_A ltl_B) r seq)
         (state (or (not ltl_A) ltl_B) r seq)
         r-expand-implies)
-   (--> (state (iff ltl_A ltl_B) r seq)
+   (==> (state (iff ltl_A ltl_B) r seq)
         (state (and (implies ltl_A ltl_B) (implies ltl_B ltl_A)) r seq)
         r-expand-iff)
-   (--> (state (release ltl_A ltl_B) r seq)
+   (==> (state (release ltl_A ltl_B) r seq)
         (state (not (until (not ltl_A) (not ltl_B))) r seq)
         r-expand-release)
-   (--> (state (eventually ltl) r seq)
+   (==> (state (eventually ltl) r seq)
         (state (until true ltl) r seq)
         r-expand-eventually)
-   (--> (state (globally ltl) r seq)
+   (==> (state (globally ltl) r seq)
         (state (not (eventually (not ltl))) r seq)
         r-expand-globally)
-   (--> (state (weak-until ltl_A ltl_B) r seq)
+   (==> (state (weak-until ltl_A ltl_B) r seq)
         (state (or (until ltl_A ltl_B) (globally ltl_A)) r seq)
         r-expand-weak-until)
-   (--> (state (strong-release ltl_A ltl_B) r seq)
+   (==> (state (strong-release ltl_A ltl_B) r seq)
         (state (and (release ltl_A ltl_B) (eventually ltl_A)) r seq)
-        r-expand-strong-release)))
+        r-expand-strong-release)
+
+   with
+   [(--> (in-hole meta-E a) (in-hole meta-E b))
+    (==> a b)]))

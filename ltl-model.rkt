@@ -63,7 +63,7 @@
   (reduction-relation
    ltl-lang
    (==> ((λ (x) predλ-e) predλ-v)
-        (term (substitute predλ-e x predλ-v))
+        (substitute predλ-e x predλ-v)
         predλ-r-app)
    (==> (if #t predλ-e_1 predλ-e_2)
         predλ-e_1
@@ -113,6 +113,11 @@
             (term #f))
 
   (test-->> predλ-red
+            (term ((λ (x) x)
+                   (if #t #f zero)))
+            (term #f))
+
+  (test-->> predλ-red
             (term ((if (zero? (succ zero))
                        (λ (x) x)
                        (λ (x) (if (zero? x)
@@ -143,11 +148,26 @@
   not-metafn : r -> r
   [(not-metafn #t) #f]
   [(not-metafn #f) #t])
+(module+ test
+  (test-equal (term (not-metafn #t))
+              (term #f))
+  (test-equal (term (not-metafn #f))
+              (term #t)))
+
 (define-metafunction ltl-lang
   or-metafn : r r -> r
   [(or-metafn #t r) #t]
   [(or-metafn #f #t) #t]
   [(or-metafn #f #f) #f])
+(module+ test
+  (test-equal (term (or-metafn #t #t))
+              (term #t))
+  (test-equal (term (or-metafn #t #f))
+              (term #t))
+  (test-equal (term (or-metafn #f #t))
+              (term #t))
+  (test-equal (term (or-metafn #f #f))
+              (term #f)))
 
 (define ltl-red
   (reduction-relation

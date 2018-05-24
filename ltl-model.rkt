@@ -320,6 +320,7 @@
     (==> a b)]))
 
 (module+ test
+  ;; -------------------- true, false --------------------
   (test-->> ltl-red
             (term (state/left true #f (cons zero empty)))
             (term (state/left true #t empty)))
@@ -327,6 +328,7 @@
             (term (state/left false #f (cons zero empty)))
             (term (state/left false #f empty)))
 
+  ;; -------------------- first --------------------
   (test-->> ltl-red
             (term (state/left (first zero?) #f (cons zero empty)))
             (term (state/left true #t empty)))
@@ -337,6 +339,7 @@
             (term (state/left (first zero?) #f (cons zero (cons #t empty))))
             (term (state/left true #t empty)))
 
+  ;; -------------------- all --------------------
   (test-->> ltl-red
             (term (state/left (all zero?) #t empty))
             (term (state/left (all zero?) #t empty)))
@@ -351,6 +354,7 @@
                               (cons zero (cons #t (cons zero empty)))))
             (term (state/left false #f empty)))
 
+  ;; -------------------- not --------------------
   (test-->> ltl-red
             (term (state/left (not (all zero?)) #t
                               (cons zero empty)))
@@ -372,6 +376,7 @@
                               (cons (succ zero) (cons #t (cons zero empty)))))
             (term (state/left (not false) #t empty)))
 
+  ;; -------------------- or --------------------
   (test-->> ltl-red
             (term (state/left (or (first zero?) (all (negate zero?))) #t
                               (cons (succ zero) (cons #t (cons zero empty)))))

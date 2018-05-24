@@ -177,15 +177,25 @@
   (reduction-relation
    ltl-lang
    (==> (state/left true r (cons seq-el seq))
-        (state/left true #t seq)
+        (state/right true #t seq)
         r-true)
+   ;; Note that only top-level simple formulas can transition
+   ;; themselves from state/left to state/right
+   ;; Non-top-level formulas should have this handled by a
+   ;; meta-context
+   (--> (state/right true #t seq)
+        (state/left true #t seq)
+        r-true/reset)
 
    (==> (state/left false r (cons seq-el seq))
-        (state/left false #f seq)
+        (state/right false #f seq)
         r-false)
+   (--> (state/right false #f seq)
+        (state/left false #f seq)
+        r-false/reset)
 
    (==> (state/left (first p) r (cons seq-el seq))
-        (state/left true #t seq)
+        (state/right true #t seq)
         ;; todo: is this how to write rule premises? Can I use bound
         ;; variables from the rule like this?
         (side-condition
@@ -193,24 +203,27 @@
                       (list (term #f)))))
         r-first-true)
    (==> (state/left (first p) r (cons seq-el seq))
-        (state/left false #f seq)
+        (state/right false #f seq)
         (side-condition
          (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
                  (list (term #f))))
         r-first-false)
 
    (==> (state/left (all p) r (cons seq-el seq))
-        (state/left (all p) #t seq)
+        (state/right (all p) #t seq)
         (side-condition
          (not (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
                       (list (term #f)))))
         r-all-true)
    (==> (state/left (all p) r (cons seq-el seq))
-        (state/left false #f seq)
+        (state/right false #f seq)
         (side-condition
          (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
                  (list (term #f))))
         r-all-false)
+   (--> (state/right (all p) #t seq)
+        (state/left (all p) #t seq)
+        r-all/reset)
 
 
    (==> (state/left (not ltl_0) r_0 (cons seq-el seq))
@@ -218,7 +231,7 @@
         r-not/meta-enter)
    ;; Now, subterm (state/left ltl r (cons seq-el seq))
    ;; may take a single reduction step -> (state/right ...)
-   (==> (meta/not (state/right ltl) r seq)
+   (==> (meta/not (state/right ltl r seq))
         (state/left (not ltl) (not-metafn r) seq)
         r-not/meta-exit)
 
@@ -323,5 +336,26 @@
             (term (state/left (all zero?) #t
                               (cons zero (cons #t (cons zero empty)))))
             (term (state/left false #f empty)))
+
+  (test-->> ltl-red
+            (term (state/left (not (all zero?)) #t
+                              (cons zero empty)))
+            (term (state/left (not (all zero?)) #f empty)))
+  (test-->> ltl-red
+            (term (state/left (not (all zero?)) #t
+                              (cons #t empty)))
+            (term (state/left (not false) #t empty)))
+  (test-->> ltl-red
+            (term (state/left (not (all zero?)) #t
+                              (cons zero (cons #t (cons zero empty)))))
+            (term (state/left (not false) #t empty)))
+  (test-->> ltl-red
+            (term (state/left (not (first zero?)) #t
+                              (cons zero (cons #t (cons zero empty)))))
+            (term (state/left (not true) #f empty)))
+  (test-->> ltl-red
+            (term (state/left (not (first zero?)) #t
+                              (cons (succ zero) (cons #t (cons zero empty)))))
+            (term (state/left (not false) #t empty)))
 
   )

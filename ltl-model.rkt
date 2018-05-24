@@ -11,7 +11,7 @@
        (first p)
        (all p)
        (not ltl)
-       (or ltl)
+       (or ltl ltl)
        (next ltl)
        (until ltl ltl)]
   [seq empty

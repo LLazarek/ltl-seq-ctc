@@ -26,8 +26,8 @@
           (meta/not meta-E)
           (meta/or meta-E ltl-state)
           (meta/or (state/right ltl r seq) meta-E)
-          (meta/until (state/mid ltl r seq) meta-E)
-          (meta/until meta-E ltl-state)]
+          (meta/until (state/mid ltl r seq) meta-E ltl)
+          (meta/until meta-E ltl-state ltl)]
 
   [p predλ-e]
   [seq-el predλ-v]
@@ -198,12 +198,14 @@
         (state/left true #t seq)
         r-true/reset)
 
+
    (==> (state/left false r (cons seq-el seq))
         (state/right false #f seq)
         r-false)
    (--> (state/right false #f seq)
         (state/left false #f seq)
         r-false/reset)
+
 
    (==> (state/left (first p) r (cons seq-el seq))
         (state/right true #t seq)
@@ -222,6 +224,7 @@
    (--> (state/right (first p) r seq)
         (state/left (first p) r seq)
         r-first/reset)
+
 
    (==> (state/left (all p) r (cons seq-el seq))
         (state/right (all p) #t seq)
@@ -252,7 +255,7 @@
         (state/left (not ltl) r seq)
         r-not/reset)
 
-   
+
    (==> (state/left (or ltl_A_0 ltl_B_0) r_0 (cons seq-el seq))
         (meta/or (state/left ltl_A_0 r_0 (cons seq-el seq))
                  (state/left ltl_B_0 r_0 (cons seq-el seq)))
@@ -261,6 +264,7 @@
    (==> (meta/or (state/right ltl_A r_A seq)
                  (state/right ltl_B r_B seq)) ;; todo: write metafunction or
         (state/left (or ltl_A ltl_B) (or-metafn r_A r_B) seq))
+
 
    (==> (state/left (next ltl) r (cons seq-el seq))
         (state/right ltl #f seq)
@@ -290,7 +294,7 @@
    (==> (meta/until (state/right ltl_A r_A seq)
                     (state/right ltl_B #f seq)
                     ltl_B_0)
-        (state/left (until ltl_A ltl_B_0) r_A seq))
+        (state/left (until ltl_A ltl_B_0) #f seq))
 
 
    (==> (state (and ltl_A ltl_B) r seq)
@@ -421,5 +425,46 @@
             (term (state/left (first zero?) #f empty)))
 
 
-  
+  ;; -------------------- until --------------------
+  ;; First element satisfies A, B never satisfied
+  (test-->> ltl-red
+            (term (state/left (until (all zero?) (all (negate zero?))) #t
+                              (cons zero empty)))
+            (term (state/left (until (all zero?) (all (negate zero?))) #f
+                              empty)))
+  ;; First element satisfies A, second element satisfies B
+  (test-->> ltl-red
+            (term (state/left (until (all zero?) (all (negate zero?))) #t
+                              (cons zero (cons #f empty))))
+            (term (state/left (all (negate zero?)) #t empty)))
+  ;; First element satisfies B
+  (test-->> ltl-red
+            (term (state/left (until (all zero?) (all (negate zero?))) #t
+                              (cons #f empty)))
+            (term (state/left (all (negate zero?)) #t empty)))
+  ;; First element satisfies A, second element satisfies B
+  ;; (different B)
+  (test-->> ltl-red
+            (term (state/left (until (all zero?) (first (negate zero?))) #t
+                              (cons zero (cons #f empty))))
+            (term (state/left true #t empty)))
+  ;; First element satisfies A, second element satisfies B
+  ;; (different B)
+  (test-->> ltl-red
+            (term (state/left (until (all zero?)
+                                     (all (λ (x) (zero? (pred x))))) ;; <=1?
+                              #t
+                              (cons zero (cons (succ zero) empty))))
+            (term (state/left (all (λ (x) (zero? (pred x))))
+                              #t
+                              empty)))
+  ;; First element satisfies A, second element fails both A and B
+  (test-->> ltl-red
+            (term (state/left (until (all zero?)
+                                     (all (λ (x) (zero? (pred x))))) ;; <=1?
+                              #t
+                              (cons zero (cons (succ (succ zero)) empty))))
+            (term (state/left false
+                              #f
+                              empty)))
   )

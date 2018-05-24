@@ -189,8 +189,8 @@
         ;; todo: is this how to write rule premises? Can I use bound
         ;; variables from the rule like this?
         (side-condition
-         (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
-                 (list (term #t))))
+         (not (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
+                      (list (term #f)))))
         r-first-true)
    (==> (state/left (first p) r (cons seq-el seq))
         (state/left false #f seq)
@@ -202,8 +202,8 @@
    (==> (state/left (all p) r (cons seq-el seq))
         (state/left (all p) #t seq)
         (side-condition
-         (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
-                 (list (term #t))))
+         (not (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
+                      (list (term #f)))))
         r-all-true)
    (==> (state/left (all p) r (cons seq-el seq))
         (state/left false #f seq)
@@ -306,4 +306,22 @@
   (test-->> ltl-red
             (term (state/left (first zero?) #f (cons #t empty)))
             (term (state/left false #f empty)))
+  (test-->> ltl-red
+            (term (state/left (first zero?) #f (cons zero (cons #t empty))))
+            (term (state/left true #t empty)))
+
+  (test-->> ltl-red
+            (term (state/left (all zero?) #t empty))
+            (term (state/left (all zero?) #t empty)))
+  (test-->> ltl-red
+            (term (state/left (all zero?) #t (cons zero (cons zero empty))))
+            (term (state/left (all zero?) #t empty)))
+  (test-->> ltl-red
+            (term (state/left (all zero?) #t (cons #t empty)))
+            (term (state/left false #f empty)))
+  (test-->> ltl-red
+            (term (state/left (all zero?) #t
+                              (cons zero (cons #t (cons zero empty)))))
+            (term (state/left false #f empty)))
+
   )

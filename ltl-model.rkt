@@ -42,7 +42,7 @@
            (if predλ-e predλ-e predλ-e)
            (succ predλ-e)
            (pred predλ-e)
-           (zero? predλ-e)]
+           zero?]
   [predλ-v r (λ (x) predλ-e) zero (succ predλ-v)]
   [x variable-not-otherwise-mentioned]
   [E hole
@@ -65,12 +65,14 @@
    (==> ((λ (x) predλ-e) predλ-v)
         (substitute predλ-e x predλ-v)
         predλ-r-app)
-   (==> (if #t predλ-e_1 predλ-e_2)
-        predλ-e_1
-        predλ-r-true)
    (==> (if #f predλ-e_1 predλ-e_2)
         predλ-e_2
         predλ-r-false)
+   (==> (if predλ-v predλ-e_1 predλ-e_2)
+        predλ-e_1
+        (side-condition (not (equal? (term predλ-v)
+                                     (term #f))))
+        predλ-r-true)
    (==> (pred zero)
         zero
         predλ-r-pred-z)
@@ -80,8 +82,10 @@
    (==> (zero? zero)
         #t
         predλ-r-zero)
-   (==> (zero? (succ predλ-v))
+   (==> (zero? predλ-v)
         #f
+        (side-condition (not (equal? (term predλ-v)
+                                     (term zero))))
         predλ-r-n)
 
    with
@@ -172,40 +176,40 @@
 (define ltl-red
   (reduction-relation
    ltl-lang
-   (==> (state true r (cons seq-el seq))
-        (state true #t seq)
+   (==> (state/left true r (cons seq-el seq))
+        (state/left true #t seq)
         r-true)
 
-   (==> (state false r (cons seq-el seq))
-        (state false #f seq)
+   (==> (state/left false r (cons seq-el seq))
+        (state/left false #f seq)
         r-false)
 
-   (==> (state (first p) r (cons seq-el seq))
-        (state true #t seq)
+   (==> (state/left (first p) r (cons seq-el seq))
+        (state/left true #t seq)
         ;; todo: is this how to write rule premises? Can I use bound
         ;; variables from the rule like this?
         (side-condition
-         (equal? (first (apply-reduction-relation predλ-red (term (p seq-el))))
-                 (term #t)))
+         (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
+                 (list (term #t))))
         r-first-true)
-   (==> (state (first p) r (cons seq-el seq))
-        (state false #f seq)
+   (==> (state/left (first p) r (cons seq-el seq))
+        (state/left false #f seq)
         (side-condition
-         (equal? (first (apply-reduction-relation predλ-red (term (p seq-el))))
-                 (term #f)))
+         (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
+                 (list (term #f))))
         r-first-false)
 
-   (==> (state (all p) r (cons seq-el seq))
-        (state (all p) #t seq)
+   (==> (state/left (all p) r (cons seq-el seq))
+        (state/left (all p) #t seq)
         (side-condition
-         (equal? (first (apply-reduction-relation predλ-red (term (p seq-el))))
-                 (term #t)))
+         (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
+                 (list (term #t))))
         r-all-true)
-   (==> (state (all p) r (cons seq-el seq))
-        (state false #f seq)
+   (==> (state/left (all p) r (cons seq-el seq))
+        (state/left false #f seq)
         (side-condition
-         (equal? (first (apply-reduction-relation predλ-red (term (p seq-el))))
-                 (term #f)))
+         (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
+                 (list (term #f))))
         r-all-false)
 
 
@@ -287,3 +291,19 @@
    with
    [(--> (in-hole meta-E a) (in-hole meta-E b))
     (==> a b)]))
+
+(module+ test
+  (test-->> ltl-red
+            (term (state/left true #f (cons zero empty)))
+            (term (state/left true #t empty)))
+  (test-->> ltl-red
+            (term (state/left false #f (cons zero empty)))
+            (term (state/left false #f empty)))
+
+  (test-->> ltl-red
+            (term (state/left (first zero?) #f (cons zero empty)))
+            (term (state/left true #t empty)))
+  (test-->> ltl-red
+            (term (state/left (first zero?) #f (cons #t empty)))
+            (term (state/left false #f empty)))
+  )

@@ -392,22 +392,22 @@
             (term (state/left (not false) #t empty)))
 
   ;; -------------------- or --------------------
-  ;; #f or #f
+  ;; #f or #f : #f
   (test-->> ltl-red
             (term (state/left (or (first zero?) (all (negate zero?))) #t
                               (cons (succ zero) (cons #t (cons zero empty)))))
             (term (state/left (or false false) #f empty)))
-  ;; #f or #t
+  ;; #f or #t : #t
   (test-->> ltl-red
             (term (state/left (or (first zero?) (not (all zero?))) #t
                               (cons (succ zero) (cons #t (cons zero empty)))))
             (term (state/left (or false (not false)) #t empty)))
-  ;; #t or #f
+  ;; #t or #f : #t
   (test-->> ltl-red
             (term (state/left (or (first zero?) (all (negate zero?))) #t
                               (cons zero (cons #t (cons zero empty)))))
             (term (state/left (or true false) #t empty)))
-  ;; #t or #t
+  ;; #t or #t : #t
   (test-->> ltl-red
             (term (state/left (or (first zero?) (all (λ (x) (if x #t #f)))) #t
                               (cons (succ zero) (cons #t (cons #t empty)))))
@@ -477,7 +477,7 @@
                               empty)))
 
   ;; -------------------- and --------------------
-  ;; #t and #t
+  ;; #t and #t : #t
   (test-->> ltl-red
             (term (state/left (and (first zero?)
                                    (all (λ (x) (zero? (pred x))))) ;; <=1?
@@ -488,7 +488,7 @@
                             (not (all (λ (x) (zero? (pred x))))))) ;; <=1?
                               #t
                               empty)))
-  ;; #t and #f
+  ;; #t and #f : #f
   (test-->> ltl-red
             (term (state/left (and (first zero?)
                                    (all (λ (x) (zero? (pred x))))) ;; <=1?
@@ -498,7 +498,7 @@
                                        (not false)))
                               #f
                               empty)))
-  ;; #f and #t
+  ;; #f and #t : #f
   (test-->> ltl-red
             (term (state/left (and (all (λ (x) (zero? (pred x))))  ;; <=1?
                                    (first zero?))
@@ -508,7 +508,7 @@
                                        (not true)))
                               #f
                               empty)))
-  ;; #f and #f
+  ;; #f and #f : #f
   (test-->> ltl-red
             (term (state/left (and (all (λ (x) (zero? (pred x))))  ;; <=1?
                                    (first zero?))
@@ -522,6 +522,7 @@
 
   ;; -------------------- implies --------------------
   ;; premise and conclusion satisfied
+  ;; #t => #t : #t
   (test-->> ltl-red
             (term (state/left (implies (first zero?) (all zero?))
                               #f
@@ -530,6 +531,7 @@
                               #t
                               empty)))
   ;; premise but not conclusion satisfied
+  ;; #t => #f : #f
   (test-->> ltl-red
             (term (state/left (implies (first zero?) (all zero?))
                               #f
@@ -538,6 +540,7 @@
                               #f
                               empty)))
   ;; conclusion but not premise satisfied
+  ;; #f => #t : #t
   (test-->> ltl-red
             (term (state/left (implies (not (first zero?))
                                        (all (λ (x) (zero? (pred x))))) ;; <=1?
@@ -548,6 +551,7 @@
                               #t
                               empty)))
   ;; neither conclusion nor premise satisfied
+  ;; #f => #f : #t
   (test-->> ltl-red
             (term (state/left (implies (not (first zero?))
                                        (all (λ (x) (zero? (pred x))))) ;; <=1?

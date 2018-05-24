@@ -4,36 +4,36 @@
 
 (define-language ltl-lang
   [ltl true
-     false
-     (first p)
-     (all p)
-     (not ltl)
-     (or ltl)
-     (next ltl)
-     (until ltl ltl)]
+       false
+       (first p)
+       (all p)
+       (not ltl)
+       (or ltl)
+       (next ltl)
+       (until ltl ltl)]
   [seq empty
        (cons seq-el seq)]
   [ltl-state (state ltl r seq)]
 
-  [p pred-e]
-  [seq-el pred-v]
+  [p predλ-e]
+  [seq-el predλ-v]
   [r #t
      #f]
 
-  [pred-e x
-       (λ (x) pred-e)
-       (pred-e pred-e)
-       (if pred-e pred-e pred-e)
-       (succ pred-e)
-       (pred pred-e)
-       (zero? pred-e)
-       pred-v]
-  [pred-v r (λ (x) pred-e) zero (succ pred-v)]
+  [predλ-e x
+           (λ (x) predλ-e)
+           (predλ-e predλ-e)
+           (if predλ-e predλ-e predλ-e)
+           (succ predλ-e)
+           (pred predλ-e)
+           (zero? predλ-e)
+           predλ-v]
+  [predλ-v r (λ (x) predλ-e) zero (succ predλ-v)]
   [x variable-not-otherwise-mentioned]
   [E hole                 ;; Only ctxs for lambda calc, because
-     (E pred-e)           ;; sub-formula reduction doesn't make
-     (pred-v E)           ;; sense.
-     (if E pred-e pred-e)
+     (E predλ-e)           ;; sub-formula reduction doesn't make
+     (predλ-v E)           ;; sense.
+     (if E predλ-e predλ-e)
      (succ E)
      (pred E)
      (zero? E)]
@@ -44,24 +44,24 @@
 ;; write lambda calc with simple values
 ;; Embed it in this language
 
-(define pred-red
+(define predλ-red
   (reduction-relation
    ltl-lang
-   (==> ((λ (x) pred-e) pred-v)
-        (term (substitute pred-e x pred-v))
-        pred-r-app)
-   (==> (if #t pred-e_1 pred-e_2)
-        pred-e_1
-        pred-r-true)
-   (==> (if #f pred-e_1 pred-e_2)
-        pred-e_2
-        pred-r-false)
+   (==> ((λ (x) predλ-e) predλ-v)
+        (term (substitute predλ-e x predλ-v))
+        predλ-r-app)
+   (==> (if #t predλ-e_1 predλ-e_2)
+        predλ-e_1
+        predλ-r-true)
+   (==> (if #f predλ-e_1 predλ-e_2)
+        predλ-e_2
+        predλ-r-false)
    (==> (pred zero)
         zero
-        pred-r-pred-z)
-   (==> (pred (succ pred-v))
-        pred-v
-        pred-r-pred-v)
+        predλ-r-pred-z)
+   (==> (pred (succ predλ-v))
+        predλ-v
+        predλ-r-pred-v)
    with
    [(--> (in-hole E a) (in-hole E b))
     (==> a b)]))
@@ -86,26 +86,26 @@
         ;; todo: is this how to write rule premises? Can I use bound
         ;; variables from the rule like this?
         (side-condition
-         (equal? (first (apply-reduction-relation pred-red (term (p seq-el))))
+         (equal? (first (apply-reduction-relation predλ-red (term (p seq-el))))
                  (term #t)))
         r-first-true)
    (--> (state (first p) r (cons seq-el seq))
         (state false #f seq)
         (side-condition
-         (equal? (first (apply-reduction-relation pred-red (term (p seq-el))))
+         (equal? (first (apply-reduction-relation predλ-red (term (p seq-el))))
                  (term #f)))
         r-first-false)
 
    (--> (state (all p) r (cons seq-el seq))
         (state (all p) #t seq)
         (side-condition
-         (equal? (first (apply-reduction-relation pred-red (term (p seq-el))))
+         (equal? (first (apply-reduction-relation predλ-red (term (p seq-el))))
                  (term #t)))
         r-all-true)
    (--> (state (all p) r (cons seq-el seq))
         (state false #f seq)
         (side-condition
-         (equal? (first (apply-reduction-relation pred-red (term (p seq-el))))
+         (equal? (first (apply-reduction-relation predλ-red (term (p seq-el))))
                  (term #f)))
         r-all-false)
 
@@ -116,6 +116,11 @@
         ;; do this
         (where (--> (state ltl_0 r_0 (cons seq-el seq))
                     (state ltl_1 r_1 seq)))
+        ;; (side-condition
+        ;;  (equal? (first (apply-reduction-relation
+        ;;                  ltl-red
+        ;;                  (term (state ltl_0 r_0 (cons seq-el seq)))))
+        ;;          (term (state ltl_1 r_1 seq))))
         r-not)
 
    (--> (state (or ltl_A_0 ltl_B_0) r_0 (cons seq-el seq))
@@ -124,6 +129,14 @@
                     (state ltl_A_1 r_A seq)))
         (where (--> (state ltl_B_0 r_0 (cons seq-el seq))
                     (state ltl_B_1 r_B seq)))
+        ;; (side-condition (equal? (apply-reduction-relation
+                                  ;; ltl-red
+                                  ;; (term (state ltl_A_0 r_0 (cons seq-el seq))))
+                                 ;; (term (state ltl_A_1 r_A seq))))
+        ;; (side-condition (equal? (apply-reduction-relation
+                                 ;; ltl-red
+                                 ;; (term (state ltl_B_0 r_0 (cons seq-el seq))))
+                                ;; (term (state ltl_B_1 r_B seq))))
         r-or)
 
    (--> (state (next ltl) r (cons seq-el seq))
@@ -134,6 +147,10 @@
         (state ltl_B_1 #t seq)
         (where (--> (state ltl_B_0 r (cons seq-el seq))
                     (state ltl_B_1 #t seq)))
+        ;; (side-condition (equal? (apply-reduction-relation
+                                 ;; ltl-red
+                                 ;; (term (state ltl_B_0 r (cons seq-el seq))))
+                                ;; (term (state ltl_B_1 #t seq))))
         r-until-start-B)
    (--> (state (until ltl_A_0 ltl_B_0) r (cons seq-el seq))
         (state (until ltl_A_1 ltl_B_0) #f seq)
@@ -141,6 +158,14 @@
                     (state ltl_B_1 #f seq)))
         (where (--> (state ltl_A_0 r (cons seq-el seq))
                     (state ltl_A_1 r_A seq)))
+        ;; (side-condition (equal? (apply-reduction-relation
+                                 ;; ltl-red
+                                 ;; (term (state ltl_B_0 r (cons seq-el seq))))
+                                ;; (term (state ltl_B_1 #f seq))))
+        ;; (side-condition (equal? (apply-reduction-relation
+                                 ;; ltl-red
+                                 ;; (term (state ltl_A_0 r (cons seq-el seq))))
+                                ;; (term (state ltl_A_1 r_A seq))))
         r-until-still-A)
 
 

@@ -219,6 +219,9 @@
          (equal? (apply-reduction-relation* predλ-red (term (p seq-el)))
                  (list (term #f))))
         r-first-false)
+   (--> (state/right (first p) r seq)
+        (state/left (first p) r seq)
+        r-first/reset)
 
    (==> (state/left (all p) r (cons seq-el seq))
         (state/right (all p) #t seq)
@@ -232,8 +235,8 @@
          (equal? (apply-reduction-relation* predλ-red (term (p seq-el)))
                  (list (term #f))))
         r-all-false)
-   (--> (state/right (all p) #t seq)
-        (state/left (all p) #t seq)
+   (--> (state/right (all p) r seq)
+        (state/left (all p) r seq)
         r-all/reset)
 
 

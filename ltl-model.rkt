@@ -2,6 +2,9 @@
 
 (require redex)
 
+(module+ test
+  (require rackunit))
+
 (define-language ltl-lang
   [ltl true
        false
@@ -85,9 +88,55 @@
    [(--> (in-hole E a) (in-hole E b))
     (==> a b)]))
 
-;; todo: Write a seperate reduction relation for the lambda/predicate calculus
-;; Then everywhere I check the predicate result instead check that it
-;; reduces to #t or #f
+
+(module+ test
+  (test-->> predλ-red
+            (term ((λ (x) x) zero))
+            (term zero))
+  (test-->> predλ-red
+            (term ((λ (x) x) (λ (x) x)))
+            (term (λ (x) x)))
+  (test-->> predλ-red
+            (term (if #t zero (succ zero)))
+            (term zero))
+  (test-->> predλ-red
+            (term (if #f zero (succ zero)))
+            (term (succ zero)))
+  (test-->> predλ-red
+            (term (pred (succ zero)))
+            (term zero))
+  (test-->> predλ-red
+            (term (zero? zero))
+            (term #t))
+  (test-->> predλ-red
+            (term (zero? (succ zero)))
+            (term #f))
+
+  (test-->> predλ-red
+            (term ((if (zero? (succ zero))
+                       (λ (x) x)
+                       (λ (x) (if (zero? x)
+                                  x
+                                  (pred x))))
+                   zero))
+            (term zero))
+  (test-->> predλ-red
+            (term ((if (zero? (succ zero))
+                       (λ (x) x)
+                       (λ (x) (if (zero? x)
+                                  x
+                                  (pred x))))
+                   (succ zero)))
+            (term zero))
+  (test-->> predλ-red
+            (term ((if (zero? (succ zero))
+                       (λ (x) x)
+                       (λ (x) (if (zero? x)
+                                  x
+                                  (pred x))))
+                   (succ (succ zero))))
+            (term (succ zero))))
+
 
 
 (define-metafunction ltl-lang

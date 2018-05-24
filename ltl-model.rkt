@@ -13,7 +13,15 @@
        (not ltl)
        (or ltl ltl)
        (next ltl)
-       (until ltl ltl)]
+       (until ltl ltl)
+       (and ltl ltl)
+       (implies ltl ltl)
+       (iff ltl ltl)
+       (release ltl ltl)
+       (eventually ltl)
+       (globally ltl)
+       (weak-until ltl ltl)
+       (strong-release ltl ltl)]
   [seq empty
        (cons seq-el seq)]
   [ltl-state (state/left ltl r seq)

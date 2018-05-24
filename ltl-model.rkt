@@ -528,6 +528,7 @@
                               #f
                               empty)))
 
+
   ;; -------------------- implies --------------------
   ;; premise and conclusion satisfied
   ;; #t => #t : #t
@@ -566,6 +567,53 @@
                               #f
                               (cons zero (cons (succ (succ zero)) empty))))
             (term (state/left (or (not (not true)) false)
+                              #t
+                              empty)))
+
+
+  ;; -------------------- iff --------------------
+  ;; #t <=> #t : #t
+  (test-->> ltl-red
+            (term (state/left (iff (first zero?) (all zero?))
+                              #f
+                              (cons zero (cons zero empty))))
+            (term (state/left (not (or (not (or (not true) (all zero?)))
+                                       (not (or (not (all zero?)) true))))
+                              #t
+                              empty)))
+  ;; premise but not conclusion satisfied
+  ;; #t <=> #f : #f
+  (test-->> ltl-red
+            (term (state/left (iff (first zero?) (all zero?))
+                              #f
+                              (cons zero (cons #f empty))))
+            (term (state/left (not (or (not (or (not true) false))
+                                       (not (or (not false) true))))
+                              #f
+                              empty)))
+  ;; conclusion but not premise satisfied
+  ;; #f <=> #t : #f
+  (test-->> ltl-red
+            (term (state/left (iff (not (first zero?))
+                                       (all (λ (x) (zero? (pred x))))) ;; <=1?
+                              #f
+                              (cons zero (cons (succ zero) empty))))
+            (term (state/left
+                   (not (or (not (or (not (not true))
+                                     (all (λ (x) (zero? (pred x))))))
+                            (not (or (not (all (λ (x) (zero? (pred x)))))
+                                     (not true)))))
+                              #f
+                              empty)))
+  ;; neither conclusion nor premise satisfied
+  ;; #f <=> #f : #t
+  (test-->> ltl-red
+            (term (state/left (iff (not (first zero?))
+                                       (all (λ (x) (zero? (pred x))))) ;; <=1?
+                              #f
+                              (cons zero (cons (succ (succ zero)) empty))))
+            (term (state/left (not (or (not (or (not (not true)) false))
+                                       (not (or (not false) (not true)))))
                               #t
                               empty)))
   )

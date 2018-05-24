@@ -392,22 +392,22 @@
             (term (state/left (not false) #t empty)))
 
   ;; -------------------- or --------------------
+  ;; #f or #f
   (test-->> ltl-red
             (term (state/left (or (first zero?) (all (negate zero?))) #t
                               (cons (succ zero) (cons #t (cons zero empty)))))
             (term (state/left (or false false) #f empty)))
+  ;; #f or #t
   (test-->> ltl-red
             (term (state/left (or (first zero?) (not (all zero?))) #t
                               (cons (succ zero) (cons #t (cons zero empty)))))
             (term (state/left (or false (not false)) #t empty)))
+  ;; #t or #f
   (test-->> ltl-red
             (term (state/left (or (first zero?) (all (negate zero?))) #t
                               (cons zero (cons #t (cons zero empty)))))
             (term (state/left (or true false) #t empty)))
-  (test-->> ltl-red
-            (term (state/left (or (first zero?) (all (λ (x) (if x #t #f)))) #t
-                              (cons (succ zero) (cons #t (cons #t empty)))))
-            (term (state/left (or false (all (λ (x) (if x #t #f)))) #t empty)))
+  ;; #t or #t
   (test-->> ltl-red
             (term (state/left (or (first zero?) (all (λ (x) (if x #t #f)))) #t
                               (cons (succ zero) (cons #t (cons #t empty)))))

@@ -262,8 +262,12 @@
         r-or/meta-enter)
    ;; Now, subterms ltl_A and ltl_B can take a single step each
    (==> (meta/or (state/right ltl_A r_A seq)
-                 (state/right ltl_B r_B seq)) ;; todo: write metafunction or
-        (state/left (or ltl_A ltl_B) (or-metafn r_A r_B) seq))
+                 (state/right ltl_B r_B seq))
+        (state/right (or ltl_A ltl_B) (or-metafn r_A r_B) seq)
+        r-or/meta-exit)
+   (--> (state/right (or ltl_A ltl_B) r seq)
+        (state/left (or ltl_A ltl_B) r seq)
+        r-or/reset)
 
 
    (==> (state/left (next ltl) r (cons seq-el seq))
@@ -280,7 +284,7 @@
    (==> (meta/until (state/mid ltl_A_0 r_0 (cons seq-el seq))
                     (state/right ltl_B #t seq)
                     ltl_B_0)
-        (state/left ltl_B #t seq)
+        (state/right ltl_B #t seq)
         r-until/meta-exit/B-true)
    ;; ltl_B_0 stepped to #f, so set up to let ltl_A_0 step
    (==> (meta/until (state/mid ltl_A_0 r_0 (cons seq-el seq))
@@ -294,32 +298,36 @@
    (==> (meta/until (state/right ltl_A r_A seq)
                     (state/right ltl_B #f seq)
                     ltl_B_0)
-        (state/left (until ltl_A ltl_B_0) #f seq))
+        (state/right (until ltl_A ltl_B_0) #f seq)
+        r-until/meta-exit/B-false)
+   (--> (state/right (until ltl_A ltl_B_0) r seq)
+        (state/left (until ltl_A ltl_B_0) r seq)
+        r-until/reset)
 
 
-   (==> (state (and ltl_A ltl_B) r seq)
-        (state (not (or (not ltl_A) (not ltl_B))) r seq)
+   (==> (state/left (and ltl_A ltl_B) r seq)
+        (state/left (not (or (not ltl_A) (not ltl_B))) r seq)
         r-expand-and)
-   (==> (state (implies ltl_A ltl_B) r seq)
-        (state (or (not ltl_A) ltl_B) r seq)
+   (==> (state/left (implies ltl_A ltl_B) r seq)
+        (state/left (or (not ltl_A) ltl_B) r seq)
         r-expand-implies)
-   (==> (state (iff ltl_A ltl_B) r seq)
-        (state (and (implies ltl_A ltl_B) (implies ltl_B ltl_A)) r seq)
+   (==> (state/left (iff ltl_A ltl_B) r seq)
+        (state/left (and (implies ltl_A ltl_B) (implies ltl_B ltl_A)) r seq)
         r-expand-iff)
-   (==> (state (release ltl_A ltl_B) r seq)
-        (state (not (until (not ltl_A) (not ltl_B))) r seq)
+   (==> (state/left (release ltl_A ltl_B) r seq)
+        (state/left (not (until (not ltl_A) (not ltl_B))) r seq)
         r-expand-release)
-   (==> (state (eventually ltl) r seq)
-        (state (until true ltl) r seq)
+   (==> (state/left (eventually ltl) r seq)
+        (state/left (until true ltl) r seq)
         r-expand-eventually)
-   (==> (state (globally ltl) r seq)
-        (state (not (eventually (not ltl))) r seq)
+   (==> (state/left (globally ltl) r seq)
+        (state/left (not (eventually (not ltl))) r seq)
         r-expand-globally)
-   (==> (state (weak-until ltl_A ltl_B) r seq)
-        (state (or (until ltl_A ltl_B) (globally ltl_A)) r seq)
+   (==> (state/left (weak-until ltl_A ltl_B) r seq)
+        (state/left (or (until ltl_A ltl_B) (globally ltl_A)) r seq)
         r-expand-weak-until)
-   (==> (state (strong-release ltl_A ltl_B) r seq)
-        (state (and (release ltl_A ltl_B) (eventually ltl_A)) r seq)
+   (==> (state/left (strong-release ltl_A ltl_B) r seq)
+        (state/left (and (release ltl_A ltl_B) (eventually ltl_A)) r seq)
         r-expand-strong-release)
 
    with
@@ -467,4 +475,24 @@
             (term (state/left false
                               #f
                               empty)))
+
+  ;; -------------------- and --------------------
+  (test-->> ltl-red
+            (term (state/left (and (first zero?)
+                                   (all (λ (x) (zero? (pred x))))) ;; <=1?
+                              #t
+                              (cons zero empty)))
+            (term (state/left
+                   (not (or (not true)
+                            (not (all (λ (x) (zero? (pred x))))))) ;; <=1?
+                              #t
+                              empty)))
+  ;; (test-->> ltl-red
+  ;;           (term (state/left (and (first zero?)
+  ;;                                  (all (λ (x) (zero? (pred x))))) ;; <=1?
+  ;;                             #t
+  ;;                             (cons zero (cons (succ (succ zero)) empty))))
+  ;;           (term (state/left (and (first zero?) false)
+  ;;                             #f
+  ;;                             empty)))
   )

@@ -42,7 +42,8 @@
            (if predλ-e predλ-e predλ-e)
            (succ predλ-e)
            (pred predλ-e)
-           zero?]
+           zero?
+           (negate predλ-e)]
   [predλ-v r (λ (x) predλ-e) zero (succ predλ-v)]
   [x variable-not-otherwise-mentioned]
   [E hole
@@ -51,7 +52,8 @@
      (if E predλ-e predλ-e)
      (succ E)
      (pred E)
-     (zero? E)]
+     (zero? E)
+     (negate E)]
   #:binding-forms
   (λ (x) predλ-e #:refers-to x))
 
@@ -87,6 +89,9 @@
         (side-condition (not (equal? (term predλ-v)
                                      (term zero))))
         predλ-r-n)
+   (==> (negate predλ-e)
+        (λ (x) (if (predλ-e x) #f #t))
+        predλ-r-negate)
 
    with
    [(--> (in-hole E a) (in-hole E b))
@@ -115,6 +120,12 @@
   (test-->> predλ-red
             (term (zero? (succ zero)))
             (term #f))
+  (test-->> predλ-red
+            (term ((negate zero?) zero))
+            (term #f))
+  (test-->> predλ-red
+            (term ((negate zero?) #t))
+            (term #t))
 
   (test-->> predλ-red
             (term ((λ (x) x)
@@ -199,26 +210,26 @@
         ;; todo: is this how to write rule premises? Can I use bound
         ;; variables from the rule like this?
         (side-condition
-         (not (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
+         (not (equal? (apply-reduction-relation* predλ-red (term (p seq-el)))
                       (list (term #f)))))
         r-first-true)
    (==> (state/left (first p) r (cons seq-el seq))
         (state/right false #f seq)
         (side-condition
-         (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
+         (equal? (apply-reduction-relation* predλ-red (term (p seq-el)))
                  (list (term #f))))
         r-first-false)
 
    (==> (state/left (all p) r (cons seq-el seq))
         (state/right (all p) #t seq)
         (side-condition
-         (not (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
+         (not (equal? (apply-reduction-relation* predλ-red (term (p seq-el)))
                       (list (term #f)))))
         r-all-true)
    (==> (state/left (all p) r (cons seq-el seq))
         (state/right false #f seq)
         (side-condition
-         (equal? (apply-reduction-relation predλ-red (term (p seq-el)))
+         (equal? (apply-reduction-relation* predλ-red (term (p seq-el)))
                  (list (term #f))))
         r-all-false)
    (--> (state/right (all p) #t seq)
@@ -232,8 +243,11 @@
    ;; Now, subterm (state/left ltl r (cons seq-el seq))
    ;; may take a single reduction step -> (state/right ...)
    (==> (meta/not (state/right ltl r seq))
-        (state/left (not ltl) (not-metafn r) seq)
+        (state/right (not ltl) (not-metafn r) seq)
         r-not/meta-exit)
+   (--> (state/right (not ltl) r seq)
+        (state/left (not ltl) r seq)
+        r-not/reset)
 
    
    (==> (state/left (or ltl_A_0 ltl_B_0) r_0 (cons seq-el seq))
@@ -357,5 +371,26 @@
             (term (state/left (not (first zero?)) #t
                               (cons (succ zero) (cons #t (cons zero empty)))))
             (term (state/left (not false) #t empty)))
+
+  (test-->> ltl-red
+            (term (state/left (or (first zero?) (all (negate zero?))) #t
+                              (cons (succ zero) (cons #t (cons zero empty)))))
+            (term (state/left (or false false) #f empty)))
+  (test-->> ltl-red
+            (term (state/left (or (first zero?) (not (all zero?))) #t
+                              (cons (succ zero) (cons #t (cons zero empty)))))
+            (term (state/left (or false (not false)) #t empty)))
+  (test-->> ltl-red
+            (term (state/left (or (first zero?) (all (negate zero?))) #t
+                              (cons zero (cons #t (cons zero empty)))))
+            (term (state/left (or true false) #t empty)))
+  (test-->> ltl-red
+            (term (state/left (or (first zero?) (all (λ (x) (if x #t #f)))) #t
+                              (cons (succ zero) (cons #t (cons #t empty)))))
+            (term (state/left (or false (all (λ (x) (if x #t #f)))) #t empty)))
+  (test-->> ltl-red
+            (term (state/left (or (first zero?) (all (λ (x) (if x #t #f)))) #t
+                              (cons (succ zero) (cons #t (cons #t empty)))))
+            (term (state/left (or false (all (λ (x) (if x #t #f)))) #t empty)))
 
   )

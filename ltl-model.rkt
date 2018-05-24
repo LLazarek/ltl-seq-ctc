@@ -477,6 +477,7 @@
                               empty)))
 
   ;; -------------------- and --------------------
+  ;; #t and #t
   (test-->> ltl-red
             (term (state/left (and (first zero?)
                                    (all (λ (x) (zero? (pred x))))) ;; <=1?
@@ -487,12 +488,34 @@
                             (not (all (λ (x) (zero? (pred x))))))) ;; <=1?
                               #t
                               empty)))
+  ;; #t and #f
   (test-->> ltl-red
             (term (state/left (and (first zero?)
                                    (all (λ (x) (zero? (pred x))))) ;; <=1?
                               #t
                               (cons zero (cons (succ (succ zero)) empty))))
             (term (state/left (not (or (not true)
+                                       (not false)))
+                              #f
+                              empty)))
+  ;; #f and #t
+  (test-->> ltl-red
+            (term (state/left (and (all (λ (x) (zero? (pred x))))  ;; <=1?
+                                   (first zero?))
+                              #t
+                              (cons zero (cons (succ (succ zero)) empty))))
+            (term (state/left (not (or (not false)
+                                       (not true)))
+                              #f
+                              empty)))
+  ;; #f and #f
+  (test-->> ltl-red
+            (term (state/left (and (all (λ (x) (zero? (pred x))))  ;; <=1?
+                                   (first zero?))
+                              #t
+                              (cons (succ zero)
+                                    (cons (succ (succ zero)) empty))))
+            (term (state/left (not (or (not false)
                                        (not false)))
                               #f
                               empty)))

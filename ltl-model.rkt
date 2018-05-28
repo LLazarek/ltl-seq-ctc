@@ -345,426 +345,619 @@
 (module+ test
   ;; -------------------- true, false --------------------
   (test-->> ltl-red
-            (term (state/left true #f (cons zero empty)))
-            (term (state/left true #t empty)))
+            (term (state/left
+                   true
+                   #f
+                   (cons zero empty)))
+            (term (state/left
+                   true
+                   #t
+                   empty)))
   (test-->> ltl-red
-            (term (state/left false #f (cons zero empty)))
-            (term (state/left false #f empty)))
+            (term (state/left
+                   false
+                   #f
+                   (cons zero empty)))
+            (term (state/left
+                   false
+                   #f
+                   empty)))
 
   ;; -------------------- first --------------------
   (test-->> ltl-red
-            (term (state/left (first zero?) #f (cons zero empty)))
-            (term (state/left true #t empty)))
+            (term (state/left
+                   (first zero?)
+                   #f
+                   (cons zero empty)))
+            (term (state/left
+                   true
+                   #t
+                   empty)))
   (test-->> ltl-red
-            (term (state/left (first zero?) #f (cons #t empty)))
-            (term (state/left false #f empty)))
+            (term (state/left
+                   (first zero?)
+                   #f
+                   (cons #t empty)))
+            (term (state/left
+                   false
+                   #f
+                   empty)))
   (test-->> ltl-red
-            (term (state/left (first zero?) #f (cons zero (cons #t empty))))
-            (term (state/left true #t empty)))
+            (term (state/left
+                   (first zero?)
+                   #f
+                   (cons zero (cons #t empty))))
+            (term (state/left
+                   true
+                   #t
+                   empty)))
 
   ;; -------------------- all --------------------
   (test-->> ltl-red
-            (term (state/left (all zero?) #t empty))
-            (term (state/left (all zero?) #t empty)))
+            (term (state/left
+                   (all zero?)
+                   #t
+                   empty))
+            (term (state/left
+                   (all zero?)
+                   #t
+                   empty)))
   (test-->> ltl-red
-            (term (state/left (all zero?) #t (cons zero (cons zero empty))))
-            (term (state/left (all zero?) #t empty)))
+            (term (state/left
+                   (all zero?)
+                   #t
+                   (cons zero (cons zero empty))))
+            (term (state/left
+                   (all zero?)
+                   #t
+                   empty)))
   (test-->> ltl-red
-            (term (state/left (all zero?) #t (cons #t empty)))
-            (term (state/left false #f empty)))
+            (term (state/left
+                   (all zero?)
+                   #t
+                   (cons #t empty)))
+            (term (state/left
+                   false
+                   #f
+                   empty)))
   (test-->> ltl-red
-            (term (state/left (all zero?) #t
-                              (cons zero (cons #t (cons zero empty)))))
-            (term (state/left false #f empty)))
+            (term (state/left
+                   (all zero?)
+                   #t
+                   (cons zero (cons #t (cons zero empty)))))
+            (term (state/left
+                   false
+                   #f
+                   empty)))
 
   ;; -------------------- not --------------------
   (test-->> ltl-red
-            (term (state/left (not (all zero?)) #t
-                              (cons zero empty)))
-            (term (state/left (not (all zero?)) #f empty)))
+            (term (state/left
+                   (not (all zero?))
+                   #t
+                   (cons zero empty)))
+            (term (state/left
+                   (not (all zero?))
+                   #f
+                   empty)))
   (test-->> ltl-red
-            (term (state/left (not (all zero?)) #t
-                              (cons #t empty)))
-            (term (state/left (not false) #t empty)))
+            (term (state/left
+                   (not (all zero?))
+                   #t
+                   (cons #t empty)))
+            (term (state/left
+                   (not false)
+                   #t
+                   empty)))
   (test-->> ltl-red
-            (term (state/left (not (all zero?)) #t
-                              (cons zero (cons #t (cons zero empty)))))
-            (term (state/left (not false) #t empty)))
+            (term (state/left
+                   (not (all zero?))
+                   #t
+                   (cons zero (cons #t (cons zero empty)))))
+            (term (state/left
+                   (not false)
+                   #t
+                   empty)))
   (test-->> ltl-red
-            (term (state/left (not (first zero?)) #t
-                              (cons zero (cons #t (cons zero empty)))))
-            (term (state/left (not true) #f empty)))
+            (term (state/left
+                   (not (first zero?))
+                   #t
+                   (cons zero (cons #t (cons zero empty)))))
+            (term (state/left
+                   (not true)
+                   #f
+                   empty)))
   (test-->> ltl-red
-            (term (state/left (not (first zero?)) #t
-                              (cons (succ zero) (cons #t (cons zero empty)))))
-            (term (state/left (not false) #t empty)))
+            (term (state/left
+                   (not (first zero?))
+                   #t
+                   (cons (succ zero) (cons #t (cons zero empty)))))
+            (term (state/left
+                   (not false)
+                   #t
+                   empty)))
 
   ;; -------------------- or --------------------
   ;; #f or #f : #f
   (test-->> ltl-red
-            (term (state/left (or (first zero?) (all (negate zero?))) #t
-                              (cons (succ zero) (cons #t (cons zero empty)))))
-            (term (state/left (or false false) #f empty)))
+            (term (state/left
+                   (or (first zero?) (all (negate zero?)))
+                   #t
+                   (cons (succ zero) (cons #t (cons zero empty)))))
+            (term (state/left
+                   (or false false)
+                   #f
+                   empty)))
   ;; #f or #t : #t
   (test-->> ltl-red
-            (term (state/left (or (first zero?) (not (all zero?))) #t
-                              (cons (succ zero) (cons #t (cons zero empty)))))
-            (term (state/left (or false (not false)) #t empty)))
+            (term (state/left
+                   (or (first zero?) (not (all zero?)))
+                   #t
+                   (cons (succ zero) (cons #t (cons zero empty)))))
+            (term (state/left
+                   (or false (not false))
+                   #t
+                   empty)))
   ;; #t or #f : #t
   (test-->> ltl-red
-            (term (state/left (or (first zero?) (all (negate zero?))) #t
-                              (cons zero (cons #t (cons zero empty)))))
-            (term (state/left (or true false) #t empty)))
+            (term (state/left
+                   (or (first zero?) (all (negate zero?)))
+                   #t
+                   (cons zero (cons #t (cons zero empty)))))
+            (term (state/left
+                   (or true false)
+                   #t
+                   empty)))
   ;; #t or #t : #t
   (test-->> ltl-red
-            (term (state/left (or (first zero?) (all (λ (x) (if x #t #f)))) #t
-                              (cons (succ zero) (cons #t (cons #t empty)))))
-            (term (state/left (or false (all (λ (x) (if x #t #f)))) #t empty)))
+            (term (state/left
+                   (or (first zero?) (all (λ (x) (if x #t #f))))
+                   #t
+                   (cons (succ zero) (cons #t (cons #t empty)))))
+            (term (state/left
+                   (or false (all (λ (x) (if x #t #f))))
+                   #t
+                   empty)))
 
 
   ;; -------------------- next --------------------
   (test-->> ltl-red
-            (term (state/left (next (all zero?)) #t
-                              (cons zero (cons zero empty))))
-            (term (state/left (all zero?) #t empty)))
+            (term (state/left
+                   (next (all zero?))
+                   #t
+                   (cons zero (cons zero empty))))
+            (term (state/left
+                   (all zero?)
+                   #t
+                   empty)))
   (test-->> ltl-red
-            (term (state/left (next (all zero?)) #t
-                              (cons zero (cons zero (cons #f empty)))))
-            (term (state/left false #f empty)))
+            (term (state/left
+                   (next (all zero?))
+                   #t
+                   (cons zero (cons zero (cons #f empty)))))
+            (term (state/left
+                   false
+                   #f
+                   empty)))
   (test-->> ltl-red
-            (term (state/left (next (first zero?)) #t
-                              (cons zero (cons zero (cons #f empty)))))
-            (term (state/left true #t empty)))
+            (term (state/left
+                   (next (first zero?))
+                   #t
+                   (cons zero (cons zero (cons #f empty)))))
+            (term (state/left
+                   true
+                   #t
+                   empty)))
   (test-->> ltl-red
-            (term (state/left (next (first zero?)) #t
-                              (cons zero empty)))
-            (term (state/left (first zero?) #f empty)))
+            (term (state/left
+                   (next (first zero?))
+                   #t
+                   (cons zero empty)))
+            (term (state/left
+                   (first zero?)
+                   #f
+                   empty)))
 
 
   ;; -------------------- until --------------------
   ;; First element satisfies A, B never satisfied
   (test-->> ltl-red
-            (term (state/left (until (all zero?) (all (negate zero?))) #t
-                              (cons zero empty)))
-            (term (state/left (until (all zero?) (all (negate zero?))) #f
-                              empty)))
+            (term (state/left
+                   (until (all zero?) (all (negate zero?)))
+                   #t
+                   (cons zero empty)))
+            (term (state/left
+                   (until (all zero?) (all (negate zero?)))
+                   #f
+                   empty)))
   ;; First element satisfies A, second element satisfies B
   (test-->> ltl-red
-            (term (state/left (until (all zero?) (all (negate zero?))) #t
-                              (cons zero (cons #f empty))))
-            (term (state/left (all (negate zero?)) #t empty)))
+            (term (state/left
+                   (until (all zero?) (all (negate zero?)))
+                   #t
+                   (cons zero (cons #f empty))))
+            (term (state/left
+                   (all (negate zero?))
+                   #t
+                   empty)))
   ;; First element satisfies B
   (test-->> ltl-red
-            (term (state/left (until (all zero?) (all (negate zero?))) #t
-                              (cons #f empty)))
-            (term (state/left (all (negate zero?)) #t empty)))
+            (term (state/left
+                   (until (all zero?) (all (negate zero?)))
+                   #t
+                   (cons #f empty)))
+            (term (state/left
+                   (all (negate zero?))
+                   #t
+                   empty)))
   ;; First element satisfies A, second element satisfies B
   ;; (different B)
   (test-->> ltl-red
-            (term (state/left (until (all zero?) (first (negate zero?))) #t
-                              (cons zero (cons #f empty))))
-            (term (state/left true #t empty)))
+            (term (state/left
+                   (until (all zero?) (first (negate zero?)))
+                   #t
+                   (cons zero (cons #f empty))))
+            (term (state/left
+                   true
+                   #t
+                   empty)))
   ;; First element satisfies A, second element satisfies B
   ;; (different B)
   (test-->> ltl-red
-            (term (state/left (until (all zero?)
-                                     (all (λ (x) (zero? (pred x))))) ;; <=1?
-                              #t
-                              (cons zero (cons (succ zero) empty))))
-            (term (state/left (all (λ (x) (zero? (pred x))))
-                              #t
-                              empty)))
+            (term (state/left
+                   (until (all zero?)
+                          (all (λ (x) (zero? (pred x))))) ;; <=1?
+                   #t
+                   (cons zero (cons (succ zero) empty))))
+            (term (state/left
+                   (all (λ (x) (zero? (pred x))))
+                   #t
+                   empty)))
   ;; First element satisfies A, second element fails both A and B
   (test-->> ltl-red
-            (term (state/left (until (all zero?)
-                                     (all (λ (x) (zero? (pred x))))) ;; <=1?
-                              #t
-                              (cons zero (cons (succ (succ zero)) empty))))
-            (term (state/left false
-                              #f
-                              empty)))
+            (term (state/left
+                   (until (all zero?)
+                          (all (λ (x) (zero? (pred x))))) ;; <=1?
+                   #t
+                   (cons zero (cons (succ (succ zero)) empty))))
+            (term (state/left
+                   false
+                   #f
+                   empty)))
 
   ;; -------------------- and --------------------
   ;; #t and #t : #t
   (test-->> ltl-red
-            (term (state/left (and (first zero?)
-                                   (all (λ (x) (zero? (pred x))))) ;; <=1?
-                              #t
-                              (cons zero empty)))
+            (term (state/left
+                   (and (first zero?)
+                        (all (λ (x) (zero? (pred x))))) ;; <=1?
+                   #t
+                   (cons zero empty)))
             (term (state/left
                    (not (or (not true)
                             (not (all (λ (x) (zero? (pred x))))))) ;; <=1?
-                              #t
-                              empty)))
+                   #t
+                   empty)))
   ;; #t and #f : #f
   (test-->> ltl-red
-            (term (state/left (and (first zero?)
-                                   (all (λ (x) (zero? (pred x))))) ;; <=1?
-                              #t
-                              (cons zero (cons (succ (succ zero)) empty))))
-            (term (state/left (not (or (not true)
-                                       (not false)))
-                              #f
-                              empty)))
+            (term (state/left
+                   (and (first zero?)
+                        (all (λ (x) (zero? (pred x))))) ;; <=1?
+                   #t
+                   (cons zero (cons (succ (succ zero)) empty))))
+            (term (state/left
+                   (not (or (not true)
+                            (not false)))
+                   #f
+                   empty)))
   ;; #f and #t : #f
   (test-->> ltl-red
-            (term (state/left (and (all (λ (x) (zero? (pred x))))  ;; <=1?
-                                   (first zero?))
-                              #t
-                              (cons zero (cons (succ (succ zero)) empty))))
-            (term (state/left (not (or (not false)
-                                       (not true)))
-                              #f
-                              empty)))
+            (term (state/left
+                   (and (all (λ (x) (zero? (pred x))))  ;; <=1?
+                        (first zero?))
+                   #t
+                   (cons zero (cons (succ (succ zero)) empty))))
+            (term (state/left
+                   (not (or (not false)
+                            (not true)))
+                   #f
+                   empty)))
   ;; #f and #f : #f
   (test-->> ltl-red
-            (term (state/left (and (all (λ (x) (zero? (pred x))))  ;; <=1?
-                                   (first zero?))
-                              #t
-                              (cons (succ zero)
-                                    (cons (succ (succ zero)) empty))))
-            (term (state/left (not (or (not false)
-                                       (not false)))
-                              #f
-                              empty)))
+            (term (state/left
+                   (and (all (λ (x) (zero? (pred x))))  ;; <=1?
+                        (first zero?))
+                   #t
+                   (cons (succ zero)
+                         (cons (succ (succ zero)) empty))))
+            (term (state/left
+                   (not (or (not false)
+                            (not false)))
+                   #f
+                   empty)))
 
 
   ;; -------------------- implies --------------------
   ;; premise and conclusion satisfied
   ;; #t => #t : #t
   (test-->> ltl-red
-            (term (state/left (implies (first zero?) (all zero?))
-                              #f
-                              (cons zero (cons zero empty))))
-            (term (state/left (or (not true) (all zero?))
-                              #t
-                              empty)))
+            (term (state/left
+                   (implies (first zero?) (all zero?))
+                   #f
+                   (cons zero (cons zero empty))))
+            (term (state/left
+                   (or (not true) (all zero?))
+                   #t
+                   empty)))
   ;; premise but not conclusion satisfied
   ;; #t => #f : #f
   (test-->> ltl-red
-            (term (state/left (implies (first zero?) (all zero?))
-                              #f
-                              (cons zero (cons #f empty))))
-            (term (state/left (or (not true) false)
-                              #f
-                              empty)))
+            (term (state/left
+                   (implies (first zero?) (all zero?))
+                   #f
+                   (cons zero (cons #f empty))))
+            (term (state/left
+                   (or (not true) false)
+                   #f
+                   empty)))
   ;; conclusion but not premise satisfied
   ;; #f => #t : #t
   (test-->> ltl-red
-            (term (state/left (implies (not (first zero?))
-                                       (all (λ (x) (zero? (pred x))))) ;; <=1?
-                              #f
-                              (cons zero (cons (succ zero) empty))))
-            (term (state/left (or (not (not true))
-                                  (all (λ (x) (zero? (pred x)))))
-                              #t
-                              empty)))
+            (term (state/left
+                   (implies (not (first zero?))
+                            (all (λ (x) (zero? (pred x))))) ;; <=1?
+                   #f
+                   (cons zero (cons (succ zero) empty))))
+            (term (state/left
+                   (or (not (not true))
+                       (all (λ (x) (zero? (pred x)))))
+                   #t
+                   empty)))
   ;; neither conclusion nor premise satisfied
   ;; #f => #f : #t
   (test-->> ltl-red
-            (term (state/left (implies (not (first zero?))
-                                       (all (λ (x) (zero? (pred x))))) ;; <=1?
-                              #f
-                              (cons zero (cons (succ (succ zero)) empty))))
-            (term (state/left (or (not (not true)) false)
-                              #t
-                              empty)))
+            (term (state/left
+                   (implies (not (first zero?))
+                            (all (λ (x) (zero? (pred x))))) ;; <=1?
+                   #f
+                   (cons zero (cons (succ (succ zero)) empty))))
+            (term (state/left
+                   (or (not (not true)) false)
+                   #t
+                   empty)))
 
 
   ;; -------------------- iff --------------------
   ;; #t <=> #t : #t
   (test-->> ltl-red
-            (term (state/left (iff (first zero?) (all zero?))
-                              #f
-                              (cons zero (cons zero empty))))
-            (term (state/left (not (or (not (or (not true) (all zero?)))
-                                       (not (or (not (all zero?)) true))))
-                              #t
-                              empty)))
+            (term (state/left
+                   (iff (first zero?) (all zero?))
+                   #f
+                   (cons zero (cons zero empty))))
+            (term (state/left
+                   (not (or (not (or (not true) (all zero?)))
+                            (not (or (not (all zero?)) true))))
+                   #t
+                   empty)))
   ;; premise but not conclusion satisfied
   ;; #t <=> #f : #f
   (test-->> ltl-red
-            (term (state/left (iff (first zero?) (all zero?))
-                              #f
-                              (cons zero (cons #f empty))))
-            (term (state/left (not (or (not (or (not true) false))
-                                       (not (or (not false) true))))
-                              #f
-                              empty)))
+            (term (state/left
+                   (iff (first zero?) (all zero?))
+                   #f
+                   (cons zero (cons #f empty))))
+            (term (state/left
+                   (not (or (not (or (not true) false))
+                            (not (or (not false) true))))
+                   #f
+                   empty)))
   ;; conclusion but not premise satisfied
   ;; #f <=> #t : #f
   (test-->> ltl-red
-            (term (state/left (iff (not (first zero?))
-                                       (all (λ (x) (zero? (pred x))))) ;; <=1?
-                              #f
-                              (cons zero (cons (succ zero) empty))))
+            (term (state/left
+                   (iff (not (first zero?))
+                        (all (λ (x) (zero? (pred x))))) ;; <=1?
+                   #f
+                   (cons zero (cons (succ zero) empty))))
             (term (state/left
                    (not (or (not (or (not (not true))
                                      (all (λ (x) (zero? (pred x))))))
                             (not (or (not (all (λ (x) (zero? (pred x)))))
                                      (not true)))))
-                              #f
-                              empty)))
+                   #f
+                   empty)))
   ;; neither conclusion nor premise satisfied
   ;; #f <=> #f : #t
   (test-->> ltl-red
-            (term (state/left (iff (not (first zero?))
-                                       (all (λ (x) (zero? (pred x))))) ;; <=1?
-                              #f
-                              (cons zero (cons (succ (succ zero)) empty))))
-            (term (state/left (not (or (not (or (not (not true)) false))
-                                       (not (or (not false) (not true)))))
-                              #t
-                              empty)))
+            (term (state/left
+                   (iff (not (first zero?))
+                        (all (λ (x) (zero? (pred x))))) ;; <=1?
+                   #f
+                   (cons zero (cons (succ (succ zero)) empty))))
+            (term (state/left
+                   (not (or (not (or (not (not true)) false))
+                            (not (or (not false) (not true)))))
+                   #t
+                   empty)))
 
   ;; -------------------- release --------------------
   ;; A R B : A never comes : #t
   (test-->> ltl-red
-            (term (state/left (release (first zero?)
-                                       (all (λ (x) (zero? (pred x)))))  ;; <=1?
-                              #f
-                              (cons (succ zero)
-                                    (cons (succ zero)
-                                          empty))))
-            (term (state/left (not
-                               (until
-                                (not false)
-                                (not (all (λ (x) (zero? (pred x)))))))  ;; <=1?
-                              #t
-                              empty)))
+            (term (state/left
+                   (release (first zero?)
+                            (all (λ (x) (zero? (pred x)))))  ;; <=1?
+                   #f
+                   (cons (succ zero)
+                         (cons (succ zero)
+                               empty))))
+            (term (state/left
+                   (not
+                    (until
+                     (not false)
+                     (not (all (λ (x) (zero? (pred x)))))))  ;; <=1?
+                   #t
+                   empty)))
   ;; A R B : B fails before A : #f
   (test-->> ltl-red
-            (term (state/left (release (first zero?)
-                                       (all (λ (x) (zero? (pred x)))))  ;; <=1?
-                              #f
-                              (cons (succ (succ zero))
-                                    (cons (succ (succ zero))
-                                          empty))))
-            (term (state/left (not (not false))
-                              #f
-                              empty)))
+            (term (state/left
+                   (release (first zero?)
+                            (all (λ (x) (zero? (pred x)))))  ;; <=1?
+                   #f
+                   (cons (succ (succ zero))
+                         (cons (succ (succ zero))
+                               empty))))
+            (term (state/left
+                   (not (not false))
+                   #f
+                   empty)))
   ;; A R B : A comes before end : #t
   (test-->> ltl-red
-            (term (state/left (release (first zero?)
-                                       (all (λ (x) (zero? (pred x)))))  ;; <=1?
-                              #f
-                              (cons (succ zero)
-                                    (cons zero (cons #t empty)))))
+            (term (state/left
+                   (release (first zero?)
+                            (all (λ (x) (zero? (pred x)))))  ;; <=1?
+                   #f
+                   (cons (succ zero)
+                         (cons zero (cons #t empty)))))
             ;; todo: not sure I understand this, but it might just be
             ;; bc I don't get the formula fully
-            (term (state/left (not
-                               (until
-                                (not false)
-                                (not (all (λ (x) (zero? (pred x)))))))
-                              #t empty)))
+            (term (state/left
+                   (not
+                    (until
+                     (not false)
+                     (not (all (λ (x) (zero? (pred x)))))))
+                   #t empty)))
   ;; A R B : A comes at start : #t
   (test-->> ltl-red
-            (term (state/left (release (first zero?)
-                                       (all (λ (x) (zero? (pred x)))))  ;; <=1?
-                              #f
-                              (cons zero (cons #t empty))))
-            (term (state/left (not
-                               (until
-                                (not true)
-                                (not (all (λ (x) (zero? (pred x)))))))
-                              #t empty)))
+            (term (state/left
+                   (release (first zero?)
+                            (all (λ (x) (zero? (pred x)))))  ;; <=1?
+                   #f
+                   (cons zero (cons #t empty))))
+            (term (state/left
+                   (not
+                    (until
+                     (not true)
+                     (not (all (λ (x) (zero? (pred x)))))))
+                   #t empty)))
 
-  
+
   ;; -------------------- eventually --------------------
   ;; F A : A never happens : #f
   (test-->> ltl-red
-        (term (state/left (eventually (first zero?))
-                          #f
-                          (cons #t (cons (succ zero) empty))))
-        (term (state/left (until true (first zero?))
-                          #f
-                          empty)))
+            (term (state/left
+                   (eventually (first zero?))
+                   #f
+                   (cons #t (cons (succ zero) empty))))
+            (term (state/left
+                   (until true (first zero?))
+                   #f
+                   empty)))
   ;; F A : A happens : #f
   (test-->> ltl-red
-        (term (state/left (eventually (first zero?))
-                          #f
-                          (cons #t (cons zero empty))))
-        (term (state/left true
-                          #t
-                          empty)))
+            (term (state/left
+                   (eventually (first zero?))
+                   #f
+                   (cons #t (cons zero empty))))
+            (term (state/left
+                   true
+                   #t
+                   empty)))
 
   ;; -------------------- globally --------------------
   ;; G A : A never happens : #f
   (test-->> ltl-red
-        (term (state/left (globally (first zero?))
-                          #f
-                          (cons #t (cons (succ zero) empty))))
-        (term (state/left (not (not false))
-                          #f
-                          empty)))
+            (term (state/left
+                   (globally (first zero?))
+                   #f
+                   (cons #t (cons (succ zero) empty))))
+            (term (state/left
+                   (not (not false))
+                   #f
+                   empty)))
   ;; G A : A happens sometimes : #f
   (test-->> ltl-red
-        (term (state/left (globally (first zero?))
-                          #f
-                          (cons zero (cons (succ zero) empty))))
-        (term (state/left (not (not false))
-                          #f
-                          empty)))
+            (term (state/left
+                   (globally (first zero?))
+                   #f
+                   (cons zero (cons (succ zero) empty))))
+            (term (state/left
+                   (not (not false))
+                   #f
+                   empty)))
   ;; G A : A happens always : #t
   (test-->> ltl-red
-        (term (state/left (globally (first zero?))
-                          #f
-                          (cons zero (cons zero empty))))
-        (term (state/left (not (until true (not (first zero?))))
-                          #t
-                          empty)))
+            (term (state/left
+                   (globally (first zero?))
+                   #f
+                   (cons zero (cons zero empty))))
+            (term (state/left
+                   (not (until true (not (first zero?))))
+                   #t
+                   empty)))
 
   ;; -------------------- weak-until --------------------
   ;; First element satisfies A, B never satisfied
   (test-->> ltl-red
-            (term (state/left (weak-until (all zero?) (all (negate zero?)))
-                              #t
-                              (cons zero empty)))
-            (term (state/left (or (until (all zero?) (all (negate zero?)))
-                                  (not (until true (not (all zero?)))))
-                              #t
-                              empty)))
+            (term (state/left
+                   (weak-until (all zero?) (all (negate zero?)))
+                   #t
+                   (cons zero empty)))
+            (term (state/left
+                   (or (until (all zero?) (all (negate zero?)))
+                       (not (until true (not (all zero?)))))
+                   #t
+                   empty)))
   ;; First element satisfies A, second element satisfies B
   (test-->> ltl-red
-            (term (state/left (weak-until (all zero?) (all (negate zero?)))
-                              #t
-                              (cons zero (cons #f empty))))
-            (term (state/left (or (all (negate zero?)) (not (not false)))
-                              #t empty)))
+            (term (state/left
+                   (weak-until (all zero?) (all (negate zero?)))
+                   #t
+                   (cons zero (cons #f empty))))
+            (term (state/left
+                   (or (all (negate zero?)) (not (not false)))
+                   #t empty)))
   ;; First element satisfies B
   (test-->> ltl-red
-            (term (state/left (until (all zero?) (all (negate zero?)))
-                              #t
-                              (cons #f empty)))
-            (term (state/left (all (negate zero?)) 
-                              #t empty)))
+            (term (state/left
+                   (until (all zero?) (all (negate zero?)))
+                   #t
+                   (cons #f empty)))
+            (term (state/left
+                   (all (negate zero?))
+                   #t empty)))
   ;; First element satisfies A, second element satisfies B
   ;; (different B)
   (test-->> ltl-red
-            (term (state/left (weak-until (all zero?) (first (negate zero?)))
-                              #t
-                              (cons zero (cons #f empty))))
-            (term (state/left (or true (not (not false)))
-                              #t empty)))
+            (term (state/left
+                   (weak-until (all zero?) (first (negate zero?)))
+                   #t
+                   (cons zero (cons #f empty))))
+            (term (state/left
+                   (or true (not (not false)))
+                   #t empty)))
   ;; First element satisfies A, second element satisfies B
   ;; (different B)
   (test-->> ltl-red
-            (term (state/left (until (all zero?)
-                                     (all (λ (x) (zero? (pred x))))) ;; <=1?
-                              #t
-                              (cons zero (cons (succ zero) empty))))
-            (term (state/left (all (λ (x) (zero? (pred x))))
-                              #t
-                              empty)))
+            (term (state/left
+                   (until (all zero?)
+                          (all (λ (x) (zero? (pred x))))) ;; <=1?
+                   #t
+                   (cons zero (cons (succ zero) empty))))
+            (term (state/left
+                   (all (λ (x) (zero? (pred x))))
+                   #t
+                   empty)))
   ;; First element satisfies A, second element fails both A and B
   (test-->> ltl-red
-            (term (state/left (weak-until (all zero?)
-                                     (all (λ (x) (zero? (pred x))))) ;; <=1?
-                              #t
-                              (cons zero (cons (succ (succ zero)) empty))))
-            (term (state/left (or false (not (not false)))
-                              #f
-                              empty)))
+            (term (state/left
+                   (weak-until (all zero?)
+                               (all (λ (x) (zero? (pred x))))) ;; <=1?
+                   #t
+                   (cons zero (cons (succ (succ zero)) empty))))
+            (term (state/left
+                   (or false (not (not false)))
+                   #f
+                   empty)))
 
 
   ;; -------------------- strong-release --------------------

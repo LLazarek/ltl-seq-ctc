@@ -714,5 +714,57 @@
                           #t
                           empty)))
 
-  
-)
+  ;; -------------------- weak-until --------------------
+  ;; First element satisfies A, B never satisfied
+  (test-->> ltl-red
+            (term (state/left (weak-until (all zero?) (all (negate zero?)))
+                              #t
+                              (cons zero empty)))
+            (term (state/left (or (until (all zero?) (all (negate zero?)))
+                                  (not (until true (not (all zero?)))))
+                              #t
+                              empty)))
+  ;; First element satisfies A, second element satisfies B
+  (test-->> ltl-red
+            (term (state/left (weak-until (all zero?) (all (negate zero?)))
+                              #t
+                              (cons zero (cons #f empty))))
+            (term (state/left (or (all (negate zero?)) (not (not false)))
+                              #t empty)))
+  ;; First element satisfies B
+  (test-->> ltl-red
+            (term (state/left (until (all zero?) (all (negate zero?)))
+                              #t
+                              (cons #f empty)))
+            (term (state/left (all (negate zero?)) 
+                              #t empty)))
+  ;; First element satisfies A, second element satisfies B
+  ;; (different B)
+  (test-->> ltl-red
+            (term (state/left (weak-until (all zero?) (first (negate zero?)))
+                              #t
+                              (cons zero (cons #f empty))))
+            (term (state/left (or true (not (not false)))
+                              #t empty)))
+  ;; First element satisfies A, second element satisfies B
+  ;; (different B)
+  (test-->> ltl-red
+            (term (state/left (until (all zero?)
+                                     (all (λ (x) (zero? (pred x))))) ;; <=1?
+                              #t
+                              (cons zero (cons (succ zero) empty))))
+            (term (state/left (all (λ (x) (zero? (pred x))))
+                              #t
+                              empty)))
+  ;; First element satisfies A, second element fails both A and B
+  (test-->> ltl-red
+            (term (state/left (weak-until (all zero?)
+                                     (all (λ (x) (zero? (pred x))))) ;; <=1?
+                              #t
+                              (cons zero (cons (succ (succ zero)) empty))))
+            (term (state/left (or false (not (not false)))
+                              #f
+                              empty)))
+
+
+  )

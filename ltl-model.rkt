@@ -616,4 +616,58 @@
                                        (not (or (not false) (not true)))))
                               #t
                               empty)))
-  )
+
+  ;; -------------------- release --------------------
+  ;; A R B : A never comes : #t
+  (test-->> ltl-red
+            (term (state/left (release (first zero?)
+                                       (all (λ (x) (zero? (pred x)))))  ;; <=1?
+                              #f
+                              (cons (succ zero)
+                                    (cons (succ zero)
+                                          empty))))
+            (term (state/left (not
+                               (until
+                                (not false)
+                                (not (all (λ (x) (zero? (pred x)))))))  ;; <=1?
+                              #t
+                              empty)))
+  ;; A R B : B fails before A : #f
+  (test-->> ltl-red
+            (term (state/left (release (first zero?)
+                                       (all (λ (x) (zero? (pred x)))))  ;; <=1?
+                              #f
+                              (cons (succ (succ zero))
+                                    (cons (succ (succ zero))
+                                          empty))))
+            (term (state/left (not (not false))
+                              #f
+                              empty)))
+  ;; A R B : A comes before end : #t
+  (test-->> ltl-red
+            (term (state/left (release (first zero?)
+                                       (all (λ (x) (zero? (pred x)))))  ;; <=1?
+                              #f
+                              (cons (succ zero)
+                                    (cons zero (cons #t empty)))))
+            ;; todo: not sure I understand this, but it might just be
+            ;; bc I don't get the formula fully
+            (term (state/left (not
+                               (until
+                                (not false)
+                                (not (all (λ (x) (zero? (pred x)))))))
+                              #t empty)))
+  ;; A R B : A comes at start : #t
+  (test-->> ltl-red
+            (term (state/left (release (first zero?)
+                                       (all (λ (x) (zero? (pred x)))))  ;; <=1?
+                              #f
+                              (cons zero (cons #t empty))))
+            (term (state/left (not
+                               (until
+                                (not true)
+                                (not (all (λ (x) (zero? (pred x)))))))
+                              #t empty)))
+
+  
+)

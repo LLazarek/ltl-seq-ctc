@@ -688,5 +688,31 @@
                           #t
                           empty)))
 
+  ;; -------------------- globally --------------------
+  ;; G A : A never happens : #f
+  (test-->> ltl-red
+        (term (state/left (globally (first zero?))
+                          #f
+                          (cons #t (cons (succ zero) empty))))
+        (term (state/left (not (not false))
+                          #f
+                          empty)))
+  ;; G A : A happens sometimes : #f
+  (test-->> ltl-red
+        (term (state/left (globally (first zero?))
+                          #f
+                          (cons zero (cons (succ zero) empty))))
+        (term (state/left (not (not false))
+                          #f
+                          empty)))
+  ;; G A : A happens always : #t
+  (test-->> ltl-red
+        (term (state/left (globally (first zero?))
+                          #f
+                          (cons zero (cons zero empty))))
+        (term (state/left (not (until true (not (first zero?))))
+                          #t
+                          empty)))
+
   
 )

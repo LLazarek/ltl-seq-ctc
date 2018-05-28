@@ -670,4 +670,23 @@
                               #t empty)))
 
   
+  ;; -------------------- eventually --------------------
+  ;; F A : A never happens : #f
+  (test-->> ltl-red
+        (term (state/left (eventually (first zero?))
+                          #f
+                          (cons #t (cons (succ zero) empty))))
+        (term (state/left (until true (first zero?))
+                          #f
+                          empty)))
+  ;; F A : A happens : #f
+  (test-->> ltl-red
+        (term (state/left (eventually (first zero?))
+                          #f
+                          (cons #t (cons zero empty))))
+        (term (state/left true
+                          #t
+                          empty)))
+
+  
 )

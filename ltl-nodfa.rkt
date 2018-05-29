@@ -126,7 +126,7 @@
 		    (apply-generator then-gen/current world)])
 	(cond [(and first-res (not then-res))
 	       ;; note: returning false while in first predicate because
-	       ;; this is a *strong* until; THEN-PREDICATE *must* become
+	       ;; this is a *strong* until; THEN *must* become
 	       ;; true for this to be true
 	       (values #f (check-first-until-then first-gen/new
 						  then-gen/current))]

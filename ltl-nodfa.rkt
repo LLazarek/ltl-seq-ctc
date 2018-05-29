@@ -32,17 +32,13 @@
 (define-struct/contract (ltl/first ltl) ([predicate predicate/c]))
 (define-struct/contract (ltl/all ltl) ([predicate predicate/c]))
 
-(define (ensure-ltl . xs)
-  (unless (andmap ltl? xs)
-    (error "Error: non-ltl provided to ltl combinator.")))
-
-(define-syntax (define-ltl-combinator stx)
-  (syntax-case stx ()
-    [(define-ltl-combinator name f ...)
-     (syntax/loc stx
-       ;; I'd like to use define-struct/contract here, but it doesn't
-       ;; seem to work
-       (struct name ltl (f ...) #:guard ensure-ltl))]))
+(define-syntax-rule (define-ltl-combinator name f ...)
+  ;; I'd like to use define-struct/contract here, but it doesn't
+  ;; seem to work
+  (struct name ltl (f ...)
+    #:guard (λ xs
+              (unless (andmap ltl? xs)
+                (error "Error: non-ltl provided to ltl combinator.")))))
 
 ;; Combinators
 (define-ltl-combinator ltl/not ltl)

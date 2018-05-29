@@ -141,7 +141,7 @@
 
 	      [else
 	       ;; FIRST has failed and so has THEN
-	       (values #f #f)]))))
+	       (values #f (all-generator false-pred))]))))
 
   (check-first-until-then first-gen then-gen))
 

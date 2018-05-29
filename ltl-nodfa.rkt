@@ -368,6 +368,31 @@
   (not-generator (until-generator (not-generator releaser-gen)
                                   (not-generator held-gen))))
 
+(module+ test
+  (define (small? x)
+    (printf "Checking if ~v is small\n" x)
+    (and (positive? x) (<= x 10)))
+  (define (ten? x)
+    (printf "Checking if ~v is 10\n" x)
+    (= x 10))
+  (define ten-releases-small-gen
+    (release-generator (first-generator ten?)
+                       (all-generator small?)))
+
+  ;; Never get the release
+  ;; (check-true (check-generator ten-releases-small-gen
+                               ;; '(1 3 5)))
+  ;; Get the release and then end
+  ;; (check-true (check-generator ten-releases-small-gen
+                               ;; '(1 3 5 10)))
+  ;; Get the release and then whatever
+  (printf "---\n")
+  (check-true (check-generator ten-releases-small-gen
+                               '(10 11)))
+  (printf "---\n")
+  (check-true (check-generator ten-releases-small-gen
+                               '(1 10 11))))
+
 (define/contract (eventual-generator eventual)
   (-> generator/c generator/c)
 

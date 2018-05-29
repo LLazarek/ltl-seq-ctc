@@ -44,21 +44,27 @@
   (ltl-state? . -> . ltl-state?)
   (match state
     [(ltl-state _ _ '()) state]
+
     [(ltl-state (ltl/true) _ (cons h t)) (make-ltl-state (ltl/true) #t t)]
+
     [(ltl-state (ltl/false) _ (cons h t)) (make-ltl-state (ltl/false) #f t)]
+
     [(ltl-state (ltl/first p) _ (cons h t))
      (let* ([res (p h)]
             [new-ltl (if res (ltl/true) (ltl/false))])
        (make-ltl-state new-ltl res t))]
+
     [(ltl-state (ltl/all p) _ (cons h t))
      (let* ([res (p h)]
             [new-ltl (if res (make-ltl/all p) (ltl/false))])
        (make-ltl-state new-ltl res t))]
+
     [(ltl-state (ltl/not ltl) r (cons h t))
      (let* ([stepped-inner (step (ltl-state ltl r (cons h t)))]
             [new-ltl (make-ltl/not (ltl-state-ltl stepped-inner))]
             [res (not (ltl-state-accept? stepped-inner))])
        (make-ltl-state new-ltl res t))]
+
     [(ltl-state (ltl/or lhs rhs) r (cons h t))
      (let* ([stepped-lhs (step (ltl-state lhs r (cons h t)))]
             [stepped-rhs (step (ltl-state rhs r (cons h t)))]
@@ -67,17 +73,20 @@
             [res (or (ltl-state-accept? stepped-lhs)
                      (ltl-state-accept? stepped-rhs))])
        (make-ltl-state new-ltl res t))]
+
     [(ltl-state (ltl/next ltl) r (cons h t))
      (make-ltl-state ltl #f t)]
+
     [(ltl-state (ltl/until first-ltl then-ltl) r (cons h t))
      (let* ([stepped-then (step (ltl-state then-ltl r (cons h t)))]
             [then-accepted? (ltl-state-accept? stepped-then)]
-            [stepped-first (step (ltl-state first-ltl r (cons h t)))]
-            [new-ltl (if then-accepted?
-                         (ltl-state-ltl stepped-then)
-                         (make-ltl/until (ltl-state-ltl stepped-first)
-                                         (ltl-state-ltl stepped-then)))])
-       (make-ltl-state new-ltl then-accepted? t))]))
+            [stepped-first (step (ltl-state first-ltl r (cons h t)))])
+       (if then-accepted?
+           (make-ltl-state (ltl-state-ltl stepped-then) #t t)
+           (make-ltl-state (make-ltl/until (ltl-state-ltl stepped-first)
+                                           then-ltl)
+                           #f ;; this is strong until; then must become true
+                           t)))]))
 
 
 (define/contract (run ltl seq [init #f])
@@ -112,5 +121,55 @@
   (check-runs (ltl/all symbol?) a b c -> #t)
   (check-runs (ltl/all symbol?) a 2 c -> #f)
   (check-runs (ltl/all symbol?) 1 #t '() -> #f)
-  )
 
+  ;; -------------------- not --------------------
+  (check-runs (ltl/not (ltl/all symbol?)) a b c -> #f)
+  (check-runs (ltl/not (ltl/all symbol?)) a 1 c -> #t)
+  (check-runs (ltl/not (ltl/all symbol?)) 1 #t #f -> #t)
+  (check-runs (ltl/not (ltl/first symbol?)) 1 #t #f -> #t)
+  (check-runs (ltl/not (ltl/first symbol?)) a #t #f -> #f)
+
+  ;; -------------------- or --------------------
+  ;; #t or #t -> #t
+  (check-runs (ltl/or (ltl/first negative-integer?)
+                      (ltl/all integer?))
+              -1 2 3 -> #t)
+  ;; #f or #t -> #t
+  (check-runs (ltl/or (ltl/first negative-integer?)
+                      (ltl/all integer?))
+              1 2 3 -> #t)
+  ;; #t or #f -> #t
+  (check-runs (ltl/or (ltl/first negative-integer?)
+                      (ltl/all integer?))
+              -1 a b -> #t)
+  ;; #f or #f -> #f
+  (check-runs (ltl/or (ltl/first negative-integer?)
+                      (ltl/all integer?))
+              #t a b -> #f)
+
+  ;; -------------------- next --------------------
+  (check-runs (ltl/next (ltl/first integer?)) 1 2 #f -> #t)
+  (check-runs (ltl/next (ltl/first integer?)) a 2 #f -> #t)
+  (check-runs (ltl/next (ltl/first integer?)) a b #f -> #f)
+  (check-runs (ltl/next (ltl/all integer?)) 1 2 #f -> #f)
+  (check-runs (ltl/next (ltl/all integer?)) a 2 #f -> #f)
+  (check-runs (ltl/next (ltl/all integer?)) a 2 3 -> #t)
+
+  ;; -------------------- until --------------------
+  ;; First element satisfies A, B never satisfied
+  (check-runs (ltl/until (ltl/all integer?)
+                         (ltl/all symbol?))
+              0 1 -> #f)
+  ;; First element satisfies A, second element satisfies B
+  (check-runs (ltl/until (ltl/all integer?)
+                         (ltl/all symbol?))
+              0 b c -> #t)
+  ;; First element satisfies B
+  (check-runs (ltl/until (ltl/all integer?)
+                         (ltl/all symbol?))
+              b -> #t)
+  ;; First element satisfies A, second element fails both A and B
+  (check-runs (ltl/until (ltl/all integer?)
+                         (ltl/all symbol?))
+              0 #f -> #f)
+  )

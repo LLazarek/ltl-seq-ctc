@@ -288,23 +288,29 @@
               (c/or a-c/new b-c/new)))))
 
 (module+ test
-  (define or-true-c (c/or all-a-c not-all-a-c))
-  (check-t (check-consumer or-true-c '(a a a)))
-  (check-t (check-consumer or-true-c '(b 2 3 a "ashdh" #f a)))
-  ;; False because both components require at least one element to become true
-  (check-f (check-consumer or-true-c '()))
+  (define true-c (c/or next-is-a-c not-next-is-a-c))
+  (check-? (check-consumer true-c '()))
+  (check-t (check-consumer true-c '(a a a)))
+  (check-t (check-consumer true-c '(b 2 3 a "ashdh" #f a)))
+  (check-t (check-consumer true-c '(#f 2 33.0)))
 
-  (define next-is-number-or-all-b-c
-    (c/or (c/next (primitive/first number?))
-                  (c/all (curry equal? 'b))))
-  (check-t (check-consumer next-is-number-or-all-b-c '(b 1 b b b)))
-  (check-t (check-consumer next-is-number-or-all-b-c '(b b b b)))
-  (check-t (check-consumer next-is-number-or-all-b-c '(b 1 "b" #f)))
-  (check-t (check-consumer next-is-number-or-all-b-c '(c -200 "a" #f)))
-  (check-f (check-consumer next-is-number-or-all-b-c '(c b "a" #f)))
-  (check-f (check-consumer next-is-number-or-all-b-c '(b b b b #f))))
+  (define noaub-c (c/or (c/next (primitive/first number?))
+                        a-until-b-c))
+  (check-runs noaub-c : -> ?)
+  (check-runs noaub-c : c -> ?)
+  (check-runs noaub-c : a a -> ?)
+
+  (check-runs noaub-c : c 5 -> t)
+  (check-runs noaub-c : b -> t)
+  (check-runs noaub-c : a b -> t)
+  (check-runs noaub-c : a a b 5 -> t)
+
+  (check-runs noaub-c : c a a b 5 -> f)
+  (check-runs noaub-c : #t c -> f)
+  (check-runs noaub-c : a a 1 2 3 -> f))
 
 
+#|
 (define/contract (c/and a-c b-c)
   (-> consumer/c consumer/c consumer/c)
   (c/not (c/or (c/not a-c)

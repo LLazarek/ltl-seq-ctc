@@ -386,38 +386,30 @@
   (check-runs x2<->x22 : a 2 4 6 -> f))
 
 
-#|
 
+;; --------------- release ---------------
 (define/contract (c/release releaser-c held-c)
   (-> consumer/c consumer/c consumer/c)
 
   (c/not (c/until (c/not releaser-c)
-                                  (c/not held-c))))
+                  (c/not held-c))))
 
 (module+ test
-  (define (small? x)
-    (printf "Checking if ~v is small\n" x)
-    (and (positive? x) (<= x 10)))
-  (define (ten? x)
-    (printf "Checking if ~v is 10\n" x)
-    (= x 10))
-  (define ten-releases-small-c
-    (c/release (primitive/first ten?)
-                       (c/all small?)))
+  (define 2rn-c (c/release =2-c
+                           (primitive/first number?)))
 
+  ;; Too short
+  (check-runs 2rn-c :  -> ?)
   ;; Never get the release
-  ;; (check-t (check-consumer ten-releases-small-c
-                               ;; '(1 3 5)))
+  (check-runs 2rn-c : 1 3 5 -> ?)
   ;; Get the release and then end
-  ;; (check-t (check-consumer ten-releases-small-c
-                               ;; '(1 3 5 10)))
+  (check-runs 2rn-c : 1 3 5 2 -> t)
   ;; Get the release and then whatever
-  (printf "---\n")
-  (check-t (check-consumer ten-releases-small-c
-                               '(10 11)))
-  (printf "---\n")
-  (check-t (check-consumer ten-releases-small-c
-                               '(1 10 11))))
+  (check-runs 2rn-c : 2 a -> t)
+  (check-runs 2rn-c : 1 2 #f c -> t))
+
+
+#|
 
 (define/contract (c/eventually eventual)
   (-> consumer/c consumer/c)

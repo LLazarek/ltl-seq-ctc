@@ -10,6 +10,15 @@
 (define result/not-good? (or/c result/bad? result/indeterminate?))
 (define result/not-bad? (or/c result/good? result/indeterminate?))
 
+(define (bool->result b)
+  (if b 't 'f))
+
+(define (invert-result r)
+  (match r
+    ['t 'f]
+    ['f 't]
+    ['? '?]))
+
 ;; An ltl formula's encoding is a Consumer
 (define consumer/c
   (-> world/c (values result/c (recursive-contract consumer/c))))
@@ -43,9 +52,6 @@
   (define (thunk x)
     (values v thunk))
   thunk)
-
-(define (bool->result b)
-  (if b 't 'f))
 
 ;; Produces a consumer that checks PRED against the first element
 ;; in a sequence
@@ -164,7 +170,6 @@
 
   (check-recurrently-with (list (ltl-pair A B '? '?))))
 
-#|
 ;; todo: need to figure out how UNTIL actually works.
 ;; For example:
 ;; (primitive/first 'a) U (primitive/first 'b)
@@ -186,7 +191,6 @@
 ;; until one becomes 't?
 ;;
 ;; The more I think about it the more that seems like the way it has to be...
-|#
 
 (module+ test
   (define a-until-b-c (c/until (primitive/first (curry equal? 'a))
@@ -212,58 +216,43 @@
  (check-t (check-consumer next-a-until-next-b-c '(c a a a c b d)))
  (check-? (check-consumer next-a-until-next-b-c '(c a a a c))))
 
-#|
 
+;; --------------- until ---------------
 ;; Generator -> Generator
 (define/contract (c/not gen)
   (-> consumer/c consumer/c)
 
   (λ (world)
     (let-values ([(res new-c) (gen world)])
-      (values (not res)
-              (c/not (or new-c
-                                 (c/all true-pred)))))))
+      (values (invert-result res)
+              (c/not new-c)))))
 
 (module+ test
-  (define not-first-number-then-all-symbols-c
-    (c/not first-number-then-all-symbols-c))
-  (check-f (check-consumer not-first-number-then-all-symbols-c
-                               '(42 a b c c)))
-  (check-f (check-consumer not-first-number-then-all-symbols-c
-                               '(1000.0 b b kl g r edcsdsvc f)))
-  (check-t (check-consumer not-first-number-then-all-symbols-c
-                                '(1 2 b 3 kl g r edcsdsvc f)))
-  (check-t (check-consumer not-first-number-then-all-symbols-c
-                                '(1)))
+  (define not-next-is-a-c (c/not next-is-a-c))
+
+  (check-? (check-consumer not-next-is-a-c '()))
+  (check-? (check-consumer not-next-is-a-c '(a)))
+  (check-? (check-consumer not-next-is-a-c '(b)))
+  (check-f (check-consumer not-next-is-a-c '("test" a)))
+  (check-f (check-consumer not-next-is-a-c '(#f a b)))
+  (check-t (check-consumer not-next-is-a-c '(a b c)))
 
   (define not-a-until-b-c (c/not a-until-b-c))
-  (check-f (check-consumer not-a-until-b-c '(a b b)))
+  (check-? (check-consumer not-a-until-b-c '()))
+  (check-? (check-consumer not-a-until-b-c '(a)))
+  (check-? (check-consumer not-a-until-b-c '(a a)))
+
   (check-f (check-consumer not-a-until-b-c '(b)))
-  (check-t (check-consumer not-a-until-b-c '(b b b b b a)))
-  (check-t (check-consumer not-a-until-b-c '(a a b b 1)))
+  (check-f (check-consumer not-a-until-b-c '(a b)))
+  (check-f (check-consumer not-a-until-b-c '(a a a b)))
+  (check-f (check-consumer not-a-until-b-c '(a a a b b b b)))
+  (check-f (check-consumer not-a-until-b-c '(b d e)))
 
-  (define not-next-starts-with-number-c
-    (c/not next-starts-with-number-c))
-  (check-f (check-consumer not-next-starts-with-number-c '("nan" 2 a)))
-  (check-f (check-consumer not-next-starts-with-number-c
-                                '("nan" 2 a "b" 3)))
-  (check-t (check-consumer not-next-starts-with-number-c '(1 a)))
-  (check-t (check-consumer not-next-starts-with-number-c '(a a)))
+  (check-t (check-consumer not-a-until-b-c '(a c)))
+  (check-t (check-consumer not-a-until-b-c '(a c b)))
+  (check-t (check-consumer not-a-until-b-c '(1 2 3))))
 
-  (define not-next-is-a-c (c/not next-is-a-c))
-  (check-f (check-consumer not-next-is-a-c '(#f a a a a a a)))
-  (check-f (check-consumer not-next-is-a-c '(b a a a a a a)))
-  (check-t (check-consumer not-next-is-a-c '(a b c)))
-  (check-t (check-consumer not-next-is-a-c '(a a c)))
-
-  (define not-first-a-c (c/not first-a-c))
-  (check-f (check-consumer not-first-a-c '(a b)))
-  (check-t (check-consumer not-first-a-c '(b a b)))
-
-  (define not-all-a-c (c/not all-a-c))
-  (check-f (check-consumer not-all-a-c '(a a a a a a)))
-  (check-t (check-consumer not-all-a-c '(a b))))
-
+#|
 
 (define/contract (c/or a-c b-c)
   (-> consumer/c consumer/c consumer/c)

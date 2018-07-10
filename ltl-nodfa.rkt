@@ -45,20 +45,7 @@
         (check-consumer next-consumer (rest seq) accept?))))
 
 (module+ test
-  (require rackunit)
-
-  (define-syntax-rule (check-? expr-c)
-    (check-equal? expr-c '?))
-  (define-syntax-rule (check-t expr-c)
-    (check-equal? expr-c 't))
-  (define-syntax-rule (check-f expr-c)
-    (check-equal? expr-c 'f))
-
-  (define-syntax-rule (check-c res consumer seq)
-    (check-equal? (check-consumer consumer seq) res))
-  (define-syntax-rule (check-c-for-all consumer (res seq) ...)
-    (let ([the-consumer consumer])
-      (check-c 'res the-consumer 'seq) ...))
+  (require rackunit) 
 
   (define-syntax (check-runs stx)
     (syntax-case stx (: ->)
@@ -91,12 +78,12 @@
 (module+ test
   (define first-a-c (primitive/first (curry equal? 'a)))
 
-  (check-? (check-consumer first-a-c '()))
-  (check-t (check-consumer first-a-c '(a)))
-  (check-t (check-consumer first-a-c '(a a)))
-  (check-t (check-consumer first-a-c '(a b)))
-  (check-f (check-consumer first-a-c '(1 2)))
-  (check-f (check-consumer first-a-c '(b))))
+  (check-runs first-a-c :  -> ?)
+  (check-runs first-a-c : a -> t)
+  (check-runs first-a-c : a a -> t)
+  (check-runs first-a-c : a b -> t)
+  (check-runs first-a-c : 1 2 -> f)
+  (check-runs first-a-c : b -> f))
 
 
 ;; -------------------- Compound ltl constructors --------------------
@@ -111,12 +98,12 @@
 (module+ test
   (define next-is-a-c (c/next (primitive/first (curry equal? 'a))))
 
-  (check-? (check-consumer next-is-a-c '()))
-  (check-? (check-consumer next-is-a-c '(a)))
-  (check-? (check-consumer next-is-a-c '(b)))
-  (check-t (check-consumer next-is-a-c '("test" a)))
-  (check-t (check-consumer next-is-a-c '(#f a b)))
-  (check-f (check-consumer next-is-a-c '(a b c))))
+  (check-runs next-is-a-c :  -> ?)
+  (check-runs next-is-a-c : a -> ?)
+  (check-runs next-is-a-c : b -> ?)
+  (check-runs next-is-a-c : "test" a -> t)
+  (check-runs next-is-a-c : #f a b -> t)
+  (check-runs next-is-a-c : a b c -> f))
 
 
 ;; --------------- until ---------------
@@ -219,26 +206,26 @@
 (module+ test
   (define a-until-b-c (c/until (primitive/first (curry equal? 'a))
                                (primitive/first (curry equal? 'b))))
+  
+  (check-runs a-until-b-c :  -> ?)
+  (check-runs a-until-b-c : a -> ?)
+  (check-runs a-until-b-c : a a -> ?)
 
- (check-? (check-consumer a-until-b-c '()))
- (check-? (check-consumer a-until-b-c '(a)))
- (check-? (check-consumer a-until-b-c '(a a)))
+  (check-runs a-until-b-c : b -> t)
+  (check-runs a-until-b-c : a b -> t)
+  (check-runs a-until-b-c : a a a b -> t)
+  (check-runs a-until-b-c : a a a b b b b -> t)
+  (check-runs a-until-b-c : b d e -> t)
 
- (check-t (check-consumer a-until-b-c '(b)))
- (check-t (check-consumer a-until-b-c '(a b)))
- (check-t (check-consumer a-until-b-c '(a a a b)))
- (check-t (check-consumer a-until-b-c '(a a a b b b b)))
- (check-t (check-consumer a-until-b-c '(b d e)))
+  (check-runs a-until-b-c : a c -> f)
+  (check-runs a-until-b-c : a c b -> f)
+  (check-runs a-until-b-c : 1 2 3 -> f)
 
- (check-f (check-consumer a-until-b-c '(a c)))
- (check-f (check-consumer a-until-b-c '(a c b)))
- (check-f (check-consumer a-until-b-c '(1 2 3)))
-
- (define next-a-until-next-b-c
+ (define naunb-c
    (c/until (c/next (primitive/first (curry equal? 'a)))
             (c/next (c/next (primitive/first (curry equal? 'b))))))
- (check-t (check-consumer next-a-until-next-b-c '(c a a a c b d)))
- (check-? (check-consumer next-a-until-next-b-c '(c a a a c))))
+ (check-runs naunb-c : c a a a c b d -> t)
+ (check-runs naunb-c : c a a a c -> ?))
 
 
 ;; --------------- until ---------------
@@ -254,27 +241,27 @@
 (module+ test
   (define not-next-is-a-c (c/not next-is-a-c))
 
-  (check-? (check-consumer not-next-is-a-c '()))
-  (check-? (check-consumer not-next-is-a-c '(a)))
-  (check-? (check-consumer not-next-is-a-c '(b)))
-  (check-f (check-consumer not-next-is-a-c '("test" a)))
-  (check-f (check-consumer not-next-is-a-c '(#f a b)))
-  (check-t (check-consumer not-next-is-a-c '(a b c)))
+  (check-runs not-next-is-a-c :  -> ?)
+  (check-runs not-next-is-a-c : a -> ?)
+  (check-runs not-next-is-a-c : b -> ?)
+  (check-runs not-next-is-a-c : "test" a -> f)
+  (check-runs not-next-is-a-c : #f a b -> f)
+  (check-runs not-next-is-a-c : a b c -> t)
 
   (define not-a-until-b-c (c/not a-until-b-c))
-  (check-? (check-consumer not-a-until-b-c '()))
-  (check-? (check-consumer not-a-until-b-c '(a)))
-  (check-? (check-consumer not-a-until-b-c '(a a)))
+  (check-runs not-a-until-b-c :  -> ?)
+  (check-runs not-a-until-b-c : a -> ?)
+  (check-runs not-a-until-b-c : a a -> ?)
 
-  (check-f (check-consumer not-a-until-b-c '(b)))
-  (check-f (check-consumer not-a-until-b-c '(a b)))
-  (check-f (check-consumer not-a-until-b-c '(a a a b)))
-  (check-f (check-consumer not-a-until-b-c '(a a a b b b b)))
-  (check-f (check-consumer not-a-until-b-c '(b d e)))
+  (check-runs not-a-until-b-c : b -> f)
+  (check-runs not-a-until-b-c : a b -> f)
+  (check-runs not-a-until-b-c : a a a b -> f)
+  (check-runs not-a-until-b-c : a a a b b b b -> f)
+  (check-runs not-a-until-b-c : b d e -> f)
 
-  (check-t (check-consumer not-a-until-b-c '(a c)))
-  (check-t (check-consumer not-a-until-b-c '(a c b)))
-  (check-t (check-consumer not-a-until-b-c '(1 2 3))))
+  (check-runs not-a-until-b-c : a c -> t)
+  (check-runs not-a-until-b-c : a c b -> t)
+  (check-runs not-a-until-b-c : 1 2 3 -> t))
 
 
 ;; --------------- or ---------------
@@ -289,10 +276,10 @@
 
 (module+ test
   (define true-c (c/or next-is-a-c not-next-is-a-c))
-  (check-? (check-consumer true-c '()))
-  (check-t (check-consumer true-c '(a a a)))
-  (check-t (check-consumer true-c '(b 2 3 a "ashdh" #f a)))
-  (check-t (check-consumer true-c '(#f 2 33.0)))
+  (check-runs true-c : -> ?)
+  (check-runs true-c : a a a -> t)
+  (check-runs true-c : b 2 3 a "ashdh" #f a -> t)
+  (check-runs true-c : #f 2 33.0 -> t)
 
   (define noaub-c (c/or (c/next (primitive/first number?))
                         a-until-b-c))

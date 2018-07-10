@@ -451,13 +451,31 @@
   (check-runs all-n-c : a b -> f)
   (check-runs all-n-c : a b #f "ha" 2 3 22.0 -> f))
 
+
 #|
+
+These variants on until and release actually don't really make
+sense, because the situations they are supposed to invert actually
+result in ?, so they shouldn't behave differently.
+
+For example, until is normally considered "strong" in that it is
+required that B become true for A U B to be satisfied. However, any
+finite trace always satisfying A but not B will just produce ? (rather
+than f), because traces are treated as partial prefixes: that is, they
+may be extended. It is therefore always too early to call the trace
+false on the grounds that it doesn't satisfy B, so these tweaks to
+behavior never have their effect.
+
+Thus, I leave them out entirely.
+
+;; --------------- weak until ---------------
 (define/contract (c/until/weak first-c then-c)
   (-> consumer/c consumer/c consumer/c)
 
   (c/or (c/until first-c then-c)
-                (c/globally first-c)))
+        (c/globally first-c)))
 
+;; --------------- strong release ---------------
 (define/contract (c/release/strong releaser-c held-c)
   (-> consumer/c consumer/c consumer/c)
 

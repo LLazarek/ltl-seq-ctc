@@ -13,11 +13,22 @@
 (define (bool->result b)
   (if b 't 'f))
 
-(define (invert-result r)
+(define (result/invert r)
   (match r
     ['t 'f]
     ['f 't]
     ['? '?]))
+
+(define (result/or r-a r-b)
+  (cond [(or (result/good? r-a)
+             (result/good? r-b))
+         't]
+
+        [(not (and (result/bad? r-a)
+                   (result/bad? r-b)))
+         '?]
+
+        [else 'f]))
 
 ;; An ltl formula's encoding is a Consumer
 (define consumer/c
@@ -224,7 +235,7 @@
 
   (λ (world)
     (let-values ([(res new-c) (gen world)])
-      (values (invert-result res)
+      (values (result/invert res)
               (c/not new-c)))))
 
 (module+ test
@@ -252,15 +263,15 @@
   (check-t (check-consumer not-a-until-b-c '(a c b)))
   (check-t (check-consumer not-a-until-b-c '(1 2 3))))
 
-#|
 
+;; --------------- or ---------------
 (define/contract (c/or a-c b-c)
   (-> consumer/c consumer/c consumer/c)
 
   (λ (world)
     (let-values ([(a-accept? a-c/new) (a-c world)]
                  [(b-accept? b-c/new) (b-c world)])
-      (values (or a-accept? b-accept?)
+      (values (result/or a-accept? b-accept?)
               (c/or a-c/new b-c/new)))))
 
 (module+ test

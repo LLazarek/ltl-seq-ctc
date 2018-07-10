@@ -7,6 +7,8 @@
 (define result/good? (curry equal? 't))
 (define result/bad? (curry equal? 'f))
 (define result/indeterminate? (curry equal? '?))
+(define result/not-good? (or/c result/bad? result/indeterminate?))
+(define result/not-bad? (or/c result/good? result/indeterminate?))
 
 ;; An ltl formula's encoding is a Consumer
 (define consumer/c
@@ -20,7 +22,7 @@
   (if (empty? seq)
       init
       (let-values ([(accept? next-consumer) (generator (first seq))])
-	(check-consumer next-consumer (rest seq) accept?))))
+        (check-consumer next-consumer (rest seq) accept?))))
 
 (module+ test
   (require rackunit)
@@ -86,34 +88,81 @@
   (check-t (check-consumer next-is-a-c '(#f a b)))
   (check-f (check-consumer next-is-a-c '(a b c))))
 
+
 ;; --------------- until ---------------
+
+;; How until works:
+;; Keep track of pairs of A/B formulas that progress in tandem
+;;
+;; As long as no A formula produces 'f,
+;; add a new version of A/B starting over on every time step
+;;   Also on every step remove any A formulas that produce 't
+;;
+;; Once an A formula produces 'f,
+;; switch to a new function that will just reduce the corresponding B formula(s)
+;; (i.e. just return the B formula)
+
+(struct ltl-pair (A B A-result B-result))
+(define ((A-result-is? what) pair)
+  (equal? (ltl-pair-A-result pair) what))
+(define ((B-result-is? what) pair)
+  (equal? (ltl-pair-B-result pair) what))
+
 ;; Generator Generator -> Generator
-(define/contract (c/until first-c then-c)
+(define/contract (c/until A B)
   (-> consumer/c consumer/c consumer/c)
 
-  (define (check-first-until-then first-c/current then-c/current)
+  (define (step-all A-B-pairs world)
+    (for/list ([pair (in-list A-B-pairs)])
+      (define-values (this-A/result this-A/new) ((ltl-pair-A pair) world))
+      (define-values (this-B/result this-B/new) ((ltl-pair-B pair) world))
+      (ltl-pair this-A/new    this-B/new
+                this-A/result this-B/result)))
+  (define (check-recurrently-with A-B-pairs)
     (λ (world)
-      (let-values ([(first-res first-c/new)
-		    (first-c/current world)]
-		   [(then-res then-c/new)
-		    (then-c/current world)])
-	(cond [(and first-res (not then-res))
-	       (values '? (check-first-until-then first-c/new
-						  then-c/current))]
+      (define stepped-pairs (step-all A-B-pairs world))
+      (define pairs/without-good-As (filter-not (A-result-is? 't)
+                                                stepped-pairs))
+      (define new-pairs (cons (ltl-pair A B '? '?) pairs/without-good-As))
 
-              ;; todo confirm: until doesn't say anything about
-              ;; first-c's truth once then-c becomes true
-              ;; Alternative: (when then-c becomes true first-c
-              ;; must be false)
-              ;; [(and (not first-res) then-res)
-	      [then-res
-	       (values then-res then-c/new)]
+      (define good-Bs (filter (B-result-is? 't) stepped-pairs))
+      (define bad-As (filter (A-result-is? 'f) stepped-pairs))
 
-	      [else
-	       ;; FIRST has failed and so has THEN
-	       (values #f (c/all false-pred))]))))
+      (define bad-As/indeterminate-Bs (filter (B-result-is? '?) bad-As))
 
-  (check-first-until-then first-c then-c))
+      (cond [(not (empty? good-Bs))
+             (values 't (primitive/value-thunk 't))]
+
+            [(empty? bad-As)
+             ;; A's are all good or indeterminate
+             (values '? (check-recurrently-with new-pairs))]
+
+            [(empty? bad-As/indeterminate-Bs)
+             ;; Some of the A's are bad, and all of their B's are bad
+             (values 'f (primitive/value-thunk 'f))]
+
+            [else
+             ;; Found bad prefix(es) for A,
+             ;; but their Bs may still work:
+             ;; check their Bs
+             (values '? (check-all-Bs bad-As/indeterminate-Bs))])))
+
+  (define (check-all-Bs A-B-pairs)
+    (λ (world)
+      (define stepped-pairs (step-all A-B-pairs world))
+      (define any-B-good? (ormap (B-result-is? 't) stepped-pairs))
+      (define indeterminate-Bs (filter (B-result-is? '?) stepped-pairs))
+
+      (cond [any-B-good?
+             (values 't (primitive/value-thunk 't))]
+
+            [(empty? indeterminate-Bs)
+             (values 'f (primitive/value-thunk 'f))]
+
+            [else
+             (values '? (check-all-Bs indeterminate-Bs))])))
+
+  (check-recurrently-with (list (ltl-pair A B '? '?))))
 
 #|
 ;; todo: need to figure out how UNTIL actually works.
@@ -137,56 +186,35 @@
 ;; until one becomes 't?
 ;;
 ;; The more I think about it the more that seems like the way it has to be...
+|#
 
 (module+ test
   (define a-until-b-c (c/until (primitive/first (curry equal? 'a))
                                (primitive/first (curry equal? 'b))))
 
+ (check-? (check-consumer a-until-b-c '()))
+ (check-? (check-consumer a-until-b-c '(a)))
+ (check-? (check-consumer a-until-b-c '(a a)))
+
+ (check-t (check-consumer a-until-b-c '(b)))
  (check-t (check-consumer a-until-b-c '(a b)))
  (check-t (check-consumer a-until-b-c '(a a a b)))
  (check-t (check-consumer a-until-b-c '(a a a b b b b)))
- (check-t (check-consumer a-until-b-c '(a b b)))
- (check-t (check-consumer a-until-b-c '(b)))
- (check-t (check-consumer a-until-b-c '(b b b b b)))
+ (check-t (check-consumer a-until-b-c '(b d e)))
 
- (check-f (check-consumer a-until-b-c '()))
- (check-f (check-consumer a-until-b-c '(a)))
- (check-f (check-consumer a-until-b-c '(a a)))
- (check-f (check-consumer a-until-b-c '(a b a)))
- (check-f (check-consumer a-until-b-c '(a a a a b a b b b b)))
- (check-f (check-consumer a-until-b-c '(b a a a)))
- (check-f (check-consumer a-until-b-c '(b b b b b a)))
- (check-f (check-consumer a-until-b-c '(a a b b 1)))
+ (check-f (check-consumer a-until-b-c '(a c)))
+ (check-f (check-consumer a-until-b-c '(a c b)))
  (check-f (check-consumer a-until-b-c '(1 2 3)))
- (check-f (check-consumer a-until-b-c '("hello")))
 
- (define first-number-then-all-symbols-c
-   (c/until (primitive/first number?)
-		    (c/all symbol?)))
- (check-t (check-consumer first-number-then-all-symbols-c
-			      '(1 a)))
- (check-t (check-consumer first-number-then-all-symbols-c
-			      '(42 a b c c)))
- (check-t (check-consumer first-number-then-all-symbols-c
-			      '(1000.0 b b kl g r edcsdsvc f)))
- (check-t (check-consumer first-number-then-all-symbols-c
-			      ;; should be true because A is never true and B is
-			      '(b b kl g r edcsdsvc f)))
+ (define next-a-until-next-b-c
+   (c/until (c/next (primitive/first (curry equal? 'a)))
+            (c/next (primitive/first (curry equal? 'b)))))
+ (check-t (check-consumer next-a-until-next-b-c '(c a a a c b d)))#|
+ (check-? (check-consumer next-a-until-next-b-c '(c a a a c)))
+|#
+ )
 
- ;; todo confirm: should this check succeed?
- ;; I could argue yes bc 1 satisfies A, so the whole sequence
- ;; satisfies A, and after 2 the rest satisfies B
- (check-t (check-consumer first-number-then-all-symbols-c
-                              '(1 2 b b kl g r edcsdsvc f)))
-
- (check-f (check-consumer first-number-then-all-symbols-c
-                              '(1 2 b 3 f)))
- (check-f (check-consumer first-number-then-all-symbols-c
-			       '(1 b b kl g r "edcsdsvc" f)))
- (check-f (check-consumer first-number-then-all-symbols-c
-			       '(1)))
- (check-f (check-consumer first-number-then-all-symbols-c
-			       '())))
+#|
 
 ;; Generator -> Generator
 (define/contract (c/not gen)
@@ -410,4 +438,3 @@
   (c/and (c/release releaser-c held-c)
                  (c/eventually releaser-c)))
 |#
-

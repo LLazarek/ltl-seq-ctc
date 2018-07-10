@@ -297,31 +297,34 @@
   (check-runs noaub-c : a a 1 2 3 -> f))
 
 
-#|
+;; --------------- and ---------------
 (define/contract (c/and a-c b-c)
   (-> consumer/c consumer/c consumer/c)
   (c/not (c/or (c/not a-c)
-                               (c/not b-c))))
+               (c/not b-c))))
 (module+ test
-  (define and-false-c (c/and all-a-c not-all-a-c))
-  (check-f (check-consumer and-false-c '(a a a)))
-  (check-f (check-consumer and-false-c '(b 2 3 a "ashdh" #f a)))
-  (check-f (check-consumer and-false-c '()))
+  (define false-c (c/and next-is-a-c not-next-is-a-c))
+  (check-runs false-c :  -> ?)
+  (check-runs false-c : a a a -> f)
+  (check-runs false-c : b 2 3 a "ashdh" #f a -> f)
 
-  (define all-even-and-next-is-2-c
-    (c/and (c/next (primitive/first (curry = 2)))
-                   (c/all (and/c number? even?))))
-  (check-t (check-consumer all-even-and-next-is-2-c '(16 2)))
-  (check-t (check-consumer all-even-and-next-is-2-c '(0 2 4 6 8)))
-  (check-t (check-consumer all-even-and-next-is-2-c '(2 2 2)))
-  ;; False because next isn't 2: it's not anything.
-  (check-f (check-consumer all-even-and-next-is-2-c '(42)))
-  (check-f (check-consumer all-even-and-next-is-2-c '(1 2)))
-  (check-f (check-consumer all-even-and-next-is-2-c '(0 2 3 4 6)))
-  (check-f (check-consumer all-even-and-next-is-2-c '(0 2 b)))
-  (check-f (check-consumer all-even-and-next-is-2-c '(0 2 #f 5))))
+  (define x2eu42-c
+    (c/and (c/next (primitive/first (curry equal? 2)))
+           (c/until (primitive/first (and/c number? even?))
+                    (primitive/first (curry equal? 42)))))
+  (check-runs x2eu42-c :  -> ?)
+  (check-runs x2eu42-c : 42 -> ?)
+  (check-runs x2eu42-c : 0 2 -> ?)
+  (check-runs x2eu42-c : 0 2 40 -> ?)
+  (check-runs x2eu42-c : 0 2 42 -> t)
+  (check-runs x2eu42-c : 42 2 1 -> t)
+  (check-runs x2eu42-c : 0 2 40 42 1 -> t)
+  (check-runs x2eu42-c : 0 1 2 40 -> f)
+  (check-runs x2eu42-c : 0 2 40 1 42 -> f)
+  (check-runs x2eu42-c : 0 2 #f 42 1 -> f))
 
 
+#|
 (define/contract (c/implies premise-c conclusion-c)
   (-> consumer/c consumer/c consumer/c)
   (c/or (c/not premise-c)

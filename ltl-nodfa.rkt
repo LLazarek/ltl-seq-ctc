@@ -46,12 +46,25 @@
 
 (module+ test
   (require rackunit)
+
   (define-syntax-rule (check-? expr-c)
     (check-equal? expr-c '?))
   (define-syntax-rule (check-t expr-c)
     (check-equal? expr-c 't))
   (define-syntax-rule (check-f expr-c)
-    (check-equal? expr-c 'f)))
+    (check-equal? expr-c 'f))
+
+  (define-syntax-rule (check-c res consumer seq)
+    (check-equal? (check-consumer consumer seq) res))
+  (define-syntax-rule (check-c-for-all consumer (res seq) ...)
+    (let ([the-consumer consumer])
+      (check-c 'res the-consumer 'seq) ...))
+
+  (define-syntax (check-runs stx)
+    (syntax-case stx (: ->)
+      [(check-runs consumer : seq ... -> res)
+       (syntax/loc stx
+         (check-equal? (check-consumer consumer '(seq ...)) 'res))])))
 
 ;; -------------------- Primitive ltl constructors --------------------
 ;; A primitive constructor converts a value or predicate into a consumer

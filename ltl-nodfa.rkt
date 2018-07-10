@@ -1,7 +1,13 @@
 #lang racket
 
 (module+ test
-  (require rackunit))
+  (require rackunit)
+  (define-syntax-rule (check-? expr-c)
+    (check-equal? expr-c '?))
+  (define-syntax-rule (check-t expr-c)
+    (check-equal? expr-c 't))
+  (define-syntax-rule (check-f expr-c)
+    (check-equal? expr-c 'f)))
 
 (define world/c any/c)
 (define result/c (or/c 't 'f '?))

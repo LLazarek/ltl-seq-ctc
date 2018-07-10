@@ -208,11 +208,9 @@
 
  (define next-a-until-next-b-c
    (c/until (c/next (primitive/first (curry equal? 'a)))
-            (c/next (primitive/first (curry equal? 'b)))))
- (check-t (check-consumer next-a-until-next-b-c '(c a a a c b d)))#|
- (check-? (check-consumer next-a-until-next-b-c '(c a a a c)))
-|#
- )
+            (c/next (c/next (primitive/first (curry equal? 'b))))))
+ (check-t (check-consumer next-a-until-next-b-c '(c a a a c b d)))
+ (check-? (check-consumer next-a-until-next-b-c '(c a a a c))))
 
 #|
 

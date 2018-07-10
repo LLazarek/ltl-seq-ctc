@@ -354,40 +354,39 @@
   (check-runs x2->x22-c : a 2 4 6 -> f))
 
 
-#|
 
+;; --------------- iff ---------------
 (define/contract (c/iff left-c right-c)
   (-> consumer/c consumer/c consumer/c)
 
   (c/and (c/implies left-c right-c)
-                 (c/implies right-c left-c)))
+         (c/implies right-c left-c)))
 
 (module+ test
-  (define next-is-2-iff-all-even
-    (c/iff (c/next (primitive/first (curry equal? 2)))
-                   (c/all (and/c number? even?))))
+  (define x2<->x22 (c/iff (c/next =2-c)
+                          (c/next (c/next =2-c))))
+  ;; Not enough info yet
+  (check-runs x2->x22-c :  -> ?)
+  (check-runs x2->x22-c : 0 -> ?)
+  (check-runs x2->x22-c : 0 2 -> ?)
+
   ;; Premise satisfied and so is conclusion
-  (check-t (check-consumer next-is-2-iff-all-even
-                               '(0 2 4 6)))
+  (check-runs x2<->x22 : 0 2 2 6 -> t)
   ;; Premise not satisfied...
   ;; But conclusion is
-  (check-f (check-consumer next-is-2-iff-all-even
-                               '(42)))
-  (check-f (check-consumer next-is-2-iff-all-even
-                               '(2 4 6 8)))
+  (check-runs x2<->x22 : a b 2 -> f)
+  (check-runs x2<->x22 : 0 1 2 -> f)
   ;; and neither is conclusion
-  (check-t (check-consumer next-is-2-iff-all-even
-                               '(a b c)))
-  (check-t (check-consumer next-is-2-iff-all-even
-                               '(1 3 5)))
+  (check-runs x2<->x22 : a b c -> t)
+  (check-runs x2<->x22 : 1 3 5 -> t)
 
   ;; Premise satisfied but not conclusion
-  (check-f (check-consumer next-is-2-iff-all-even
-                                '(1 2 3 5)))
-  (check-f (check-consumer next-is-2-iff-all-even
-                                '(1 2 a b)))
-  (check-f (check-consumer next-is-2-iff-all-even
-                                '(a 2 4 6))))
+  (check-runs x2<->x22 : 1 2 3 5 -> f)
+  (check-runs x2<->x22 : 1 2 a b -> f)
+  (check-runs x2<->x22 : a 2 4 6 -> f))
+
+
+#|
 
 (define/contract (c/release releaser-c held-c)
   (-> consumer/c consumer/c consumer/c)

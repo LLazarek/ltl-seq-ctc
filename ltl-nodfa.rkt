@@ -236,7 +236,7 @@
  (check-runs naunb-c : c a a a c -> ?))
 
 
-;; --------------- until ---------------
+;; --------------- not ---------------
 ;; Generator -> Generator
 (define/contract (c/not gen)
   (-> consumer/c consumer/c)

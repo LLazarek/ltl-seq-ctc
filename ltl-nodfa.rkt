@@ -308,8 +308,9 @@
   (check-runs false-c : a a a -> f)
   (check-runs false-c : b 2 3 a "ashdh" #f a -> f)
 
+  (define =2-c (primitive/first (curry equal? 2)))
   (define x2eu42-c
-    (c/and (c/next (primitive/first (curry equal? 2)))
+    (c/and (c/next =2-c)
            (c/until (primitive/first (and/c number? even?))
                     (primitive/first (curry equal? 42)))))
   (check-runs x2eu42-c :  -> ?)
@@ -324,38 +325,36 @@
   (check-runs x2eu42-c : 0 2 #f 42 1 -> f))
 
 
-#|
+;; --------------- implies ---------------
 (define/contract (c/implies premise-c conclusion-c)
   (-> consumer/c consumer/c consumer/c)
   (c/or (c/not premise-c)
                 conclusion-c))
 
 (module+ test
-  (define if-next-is-2-then-all-even
-    (c/implies (c/next (primitive/first (curry equal? 2)))
-                       (c/all (and/c number? even?))))
+  (define x2->x22-c (c/implies (c/next =2-c)
+                               (c/next (c/next =2-c))))
+  ;; Not enough info yet
+  (check-runs x2->x22-c :  -> ?)
+  (check-runs x2->x22-c : 0 -> ?)
+  (check-runs x2->x22-c : 0 2 -> ?)
   ;; Premise satisfied and so is conclusion
-  (check-t (check-consumer if-next-is-2-then-all-even
-                               '(0 2 4 6)))
+  (check-runs x2->x22-c : 0 2 2 -> t)
   ;; Premise not satisfied...
   ;; But conclusion is
-  (check-t (check-consumer if-next-is-2-then-all-even
-                               '(42)))
-  (check-t (check-consumer if-next-is-2-then-all-even
-                               '(2 4 6 8)))
+  (check-runs x2->x22-c : a b 2 -> t)
+  (check-runs x2->x22-c : 0 1 2 -> t)
   ;; and neither is conclusion
-  (check-t (check-consumer if-next-is-2-then-all-even
-                               '(a b c)))
-  (check-t (check-consumer if-next-is-2-then-all-even
-                               '(1 3 5)))
+  (check-runs x2->x22-c : a b c -> t)
+  (check-runs x2->x22-c : 1 3 5 -> t)
 
   ;; Premise satisfied but not conclusion
-  (check-f (check-consumer if-next-is-2-then-all-even
-                                '(1 2 3 5)))
-  (check-f (check-consumer if-next-is-2-then-all-even
-                                '(1 2 a b)))
-  (check-f (check-consumer if-next-is-2-then-all-even
-                                '(a 2 4 6))))
+  (check-runs x2->x22-c : 1 2 3 5 -> f)
+  (check-runs x2->x22-c : 1 2 a b -> f)
+  (check-runs x2->x22-c : a 2 4 6 -> f))
+
+
+#|
 
 (define/contract (c/iff left-c right-c)
   (-> consumer/c consumer/c consumer/c)

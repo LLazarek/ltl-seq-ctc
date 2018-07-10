@@ -421,8 +421,15 @@
 (define/contract (c/eventually eventual)
   (-> consumer/c consumer/c)
 
-  (c/until c/true
-           eventual))
+  (c/until c/true eventual))
+
+(module+ test
+  (define ev2-c (c/eventually =2-c))
+
+  (check-runs ev2-c :  -> ?)
+  (check-runs ev2-c : a b -> ?)
+  (check-runs ev2-c : a b 2 -> t)
+  (check-runs ev2-c : a b #f "ha" 2 3 22.0 -> t))
 
 #|
 (define/contract (c/globally always-c)

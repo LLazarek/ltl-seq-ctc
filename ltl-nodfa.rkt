@@ -19,55 +19,35 @@
 
 (define (false-pred _) 'f)
 (define (true-pred _) 't)
-(define (make-const-pred res)
-  (if res true-pred false-pred))
+(define (primitive/value-thunk v)
+  (define (thunk x)
+    (values x thunk))
+  thunk)
 
-;; Produces a generator that checks PRED against the first element
+(define (bool->result b)
+  (if b 't 'f))
+
+;; Produces a consumer that checks PRED against the first element
 ;; in a sequence
 (define/contract (primitive/first pred)
   (-> predicate/c generator/c)
   (λ (world)
-    (let* ([res (pred world)]
-           [res-gen (c/all (make-const-pred res))])
+    (let* ([pred-res (pred world)]
+           [res (bool->result pred-res)]
+           [res-gen (primitive/value-thunk res)])
       (values res res-gen))))
 
 (module+ test
   (define first-a-c (primitive/first (curry equal? 'a)))
 
-  (check-true (check-consumer first-a-c '(a)))
-  (check-true (check-consumer first-a-c '(a a)))
-  (check-true (check-consumer first-a-c '(a b)))
-  (check-false (check-consumer first-a-c '(b a b)))
-  (check-false (check-consumer first-a-c '(1 2)))
-  (check-false (check-consumer first-a-c '(b)))
-  (check-false (check-consumer first-a-c '())))
+  (check-? (check-consumer first-a-c '()))
+  (check-t (check-consumer first-a-c '(a)))
+  (check-t (check-consumer first-a-c '(a a)))
+  (check-t (check-consumer first-a-c '(a b)))
+  (check-f (check-consumer first-a-c '(1 2)))
+  (check-f (check-consumer first-a-c '(b))))
 
-;; Predicate -> Generator
-;;
-;; Produces a generator that checks PRED against every element
-;; in a sequence, only returning #t if all satisfy it
-(define/contract (c/all pred)
-  (-> predicate/c generator/c)
 
-  (define (check world)
-    (let ([satisfies? (pred world)])
-      (values satisfies?
-	      (if satisfies? check (c/all false-pred)))))
-  check)
-
-(module+ test
-  (define all-a-c (c/all (curry equal? 'a)))
-
-  (check-true (check-consumer all-a-c '(a)))
-  (check-true (check-consumer all-a-c '(a a)))
-  (check-true (check-consumer all-a-c '(a a a a a a)))
-  (check-false (check-consumer all-a-c '(a b)))
-  (check-false (check-consumer all-a-c '()))
-  (check-false (check-consumer all-a-c '(1 a)))
-  (check-false (check-consumer all-a-c '(a a a a a a "hi")))
-
-  (define all-symbols-c (c/all symbol?))
-  (check-false (check-consumer all-symbols-c '(1 b))))
 
 ;; Generator -> Generator
 (define/contract (c/next next)

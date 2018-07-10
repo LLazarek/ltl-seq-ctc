@@ -75,6 +75,9 @@
            [res-gen (primitive/value-thunk res)])
       (values res res-gen))))
 
+(define c/true (primitive/value-thunk 't))
+(define c/false (primitive/value-thunk 'f))
+
 (module+ test
   (define first-a-c (primitive/first (curry equal? 'a)))
 
@@ -83,7 +86,12 @@
   (check-runs first-a-c : a a -> t)
   (check-runs first-a-c : a b -> t)
   (check-runs first-a-c : 1 2 -> f)
-  (check-runs first-a-c : b -> f))
+  (check-runs first-a-c : b -> f)
+
+  (check-runs c/true : a 2 4 -> t)
+  (check-runs c/true : -3 66.4 #f "ff" -> t)
+  (check-runs c/false : a 2 4 -> f)
+  (check-runs c/false : -3 66.4 #f "ff" -> f))
 
 
 ;; -------------------- Compound ltl constructors --------------------
@@ -148,7 +156,7 @@
       (define bad-As/indeterminate-Bs (filter (B-result-is? '?) bad-As))
 
       (cond [(not (empty? good-Bs))
-             (values 't (primitive/value-thunk 't))]
+             (values 't c/true)]
 
             [(empty? bad-As)
              ;; A's are all good or indeterminate
@@ -156,7 +164,7 @@
 
             [(empty? bad-As/indeterminate-Bs)
              ;; Some of the A's are bad, and all of their B's are bad
-             (values 'f (primitive/value-thunk 'f))]
+             (values 'f c/false)]
 
             [else
              ;; Found bad prefix(es) for A,
@@ -171,10 +179,10 @@
       (define indeterminate-Bs (filter (B-result-is? '?) stepped-pairs))
 
       (cond [any-B-good?
-             (values 't (primitive/value-thunk 't))]
+             (values 't c/true)]
 
             [(empty? indeterminate-Bs)
-             (values 'f (primitive/value-thunk 'f))]
+             (values 'f c/false)]
 
             [else
              (values '? (check-all-Bs indeterminate-Bs))])))
@@ -409,14 +417,14 @@
   (check-runs 2rn-c : 1 2 #f c -> t))
 
 
-#|
 
 (define/contract (c/eventually eventual)
   (-> consumer/c consumer/c)
 
-  (c/until (c/all true-pred)
-                   eventual))
+  (c/until c/true
+           eventual))
 
+#|
 (define/contract (c/globally always-c)
   (-> consumer/c consumer/c)
 

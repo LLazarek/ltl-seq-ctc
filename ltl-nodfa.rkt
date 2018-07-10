@@ -289,7 +289,8 @@
   (check-runs true-c : b 2 3 a "ashdh" #f a -> t)
   (check-runs true-c : #f 2 33.0 -> t)
 
-  (define noaub-c (c/or (c/next (primitive/first number?))
+  (define num-c (primitive/first number?))
+  (define noaub-c (c/or (c/next num-c)
                         a-until-b-c))
   (check-runs noaub-c : -> ?)
   (check-runs noaub-c : c -> ?)
@@ -403,8 +404,7 @@
                   (c/not held-c))))
 
 (module+ test
-  (define 2rn-c (c/release =2-c
-                           (primitive/first number?)))
+  (define 2rn-c (c/release =2-c num-c))
 
   ;; Too short
   (check-runs 2rn-c :  -> ?)
@@ -418,6 +418,7 @@
 
 
 
+;; --------------- eventually ---------------
 (define/contract (c/eventually eventual)
   (-> consumer/c consumer/c)
 
@@ -431,13 +432,26 @@
   (check-runs ev2-c : a b 2 -> t)
   (check-runs ev2-c : a b #f "ha" 2 3 22.0 -> t))
 
-#|
+
+;; --------------- globally ---------------
 (define/contract (c/globally always-c)
   (-> consumer/c consumer/c)
 
-  (c/release (c/all false-pred)
-                     always-c))
+  (c/release c/false always-c))
 
+(module+ test
+  (define all-n-c (c/globally num-c))
+
+  (check-runs all-n-c :  -> ?)
+  ;; Note that there is never enough elements to prove a globally
+  ;; formula true (because every finite seq is treated as a prefix of
+  ;; an inf trace)
+  (check-runs all-n-c : 1 -> ?)
+  (check-runs all-n-c : 1 2.0 3.3 4 -> ?)
+  (check-runs all-n-c : a b -> f)
+  (check-runs all-n-c : a b #f "ha" 2 3 22.0 -> f))
+
+#|
 (define/contract (c/until/weak first-c then-c)
   (-> consumer/c consumer/c consumer/c)
 

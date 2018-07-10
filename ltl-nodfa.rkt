@@ -39,7 +39,7 @@
   (-> result/c consumer/c)
 
   (define (thunk x)
-    (values x thunk))
+    (values v thunk))
   thunk)
 
 (define (bool->result b)

@@ -37,7 +37,9 @@
 
 ;; -------------------- Testing preliminaries --------------------
 (define/contract (run-consumer generator seq [init '?])
-  (-> consumer/c (listof world/c) result/c)
+  (->* (consumer/c (listof world/c))
+       (result/c)
+       result/c)
 
   (if (empty? seq)
       init

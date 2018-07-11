@@ -55,6 +55,8 @@
        (syntax/loc stx
          (check-equal? (run-consumer consumer '(seq ...)) 'res))])))
 
+
+
 ;; -------------------- Primitive ltl constructors --------------------
 ;; A primitive constructor converts a value or predicate into a consumer
 
@@ -94,6 +96,7 @@
   (check-runs c/true : -3 66.4 #f "ff" -> t)
   (check-runs c/false : a 2 4 -> f)
   (check-runs c/false : -3 66.4 #f "ff" -> f))
+
 
 
 ;; -------------------- Compound ltl constructors --------------------

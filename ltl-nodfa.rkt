@@ -36,13 +36,13 @@
 
 
 ;; -------------------- Testing preliminaries --------------------
-(define/contract (check-consumer generator seq [init '?])
+(define/contract (run-consumer generator seq [init '?])
   (-> consumer/c (listof world/c) result/c)
 
   (if (empty? seq)
       init
       (let-values ([(accept? next-consumer) (generator (first seq))])
-        (check-consumer next-consumer (rest seq) accept?))))
+        (run-consumer next-consumer (rest seq) accept?))))
 
 (module+ test
   (require rackunit) 
@@ -51,7 +51,7 @@
     (syntax-case stx (: ->)
       [(check-runs consumer : seq ... -> res)
        (syntax/loc stx
-         (check-equal? (check-consumer consumer '(seq ...)) 'res))])))
+         (check-equal? (run-consumer consumer '(seq ...)) 'res))])))
 
 ;; -------------------- Primitive ltl constructors --------------------
 ;; A primitive constructor converts a value or predicate into a consumer

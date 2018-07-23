@@ -24,13 +24,16 @@
 ;;     #'(define FORMULA-DATUM ...)))
 
 (define-macro (formula-def "[" ID BODY ... "]")
-  (with-pattern ([ID-STX (format-datum '~a #'ID)]
+  ;; Using format-id allows the id definition to be seen
+  (with-pattern ([ID-STX (format-id #'ID "~a" (syntax-e #'ID))]
                  [(BODY-STX ...) (format-datum '~a #'(BODY ...))])
-    #''(define ID-STX (ltl-formula BODY-STX ...))))
+    #'(define ID-STX (ltl-formula BODY-STX ...))))
 
 (define-macro-cases ltl-formula
-  [(ltl-formula 'X FORM ...)
-   (next)])
+  [(ltl-formula "X" FORMULA)
+   #''(c/next FORMULA)]
+  [(ltl-formula PRED)
+   #''(primitive/first PRED)])
 
 (provide ltl-definitions racket-defs formula-def)
 

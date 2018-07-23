@@ -1,4 +1,4 @@
 #lang brag
-ltl-definitions : racket-defs formula-def*
-racket-defs : DEFS-TOK
+ltl-definitions : def-requires formula-def*
+def-requires : "(" "require" ID-TOK ")"
 formula-def : "[" ID-TOK ID-TOK+ "]"

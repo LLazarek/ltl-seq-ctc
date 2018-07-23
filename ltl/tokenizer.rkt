@@ -2,6 +2,9 @@
 (require brag/support
          (prefix-in : br-parser-tools/lex-sre))
 
+(define-lex-abbrev id (:+ (:or (:/ "A" "Z" "a" "z" "0" "9")
+                               (char-set "?!-_:/"))))
+
 (define (make-tokenizer port)
   (port-count-lines! port)
   (define (next-token)
@@ -9,23 +12,14 @@
       (lexer
        [(eof) eof]
        [(from/to ";" "\n") (next-token)]
-       [(from/to "DEFINITIONS\n" "\nEND")
-        (token 'DEFS-TOK (trim-ends "DEFINITIONS\n" lexeme "\nEND")
-               #:position (+ (pos lexeme-start) 19)
-               #:line (pos lexeme-start)
-               #:column (col lexeme-start)
-               #:span (- (pos lexeme-end)
-                         (pos lexeme-start)
-                         22))]
-       [(:+ (:or (:/ "A" "Z" "a" "z" "0" "9")
-                 (char-set "?!-_:/")))
+       [(:or (char-set "[]()") "require") lexeme]
+       [id
         (token 'ID-TOK lexeme
                #:position (pos lexeme-start)
                #:line (pos lexeme-start)
                #:column (col lexeme-start)
                #:span (- (pos lexeme-end)
                          (pos lexeme-start)))]
-       [(char-set "[]") lexeme]
        ;; [(from/to "[" "]")
        ;;  (token 'FORMULA-TOK (trim-ends "[" lexeme "]")
        ;;         #:position (+ (pos lexeme-start) 1)

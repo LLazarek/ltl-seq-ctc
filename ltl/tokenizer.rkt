@@ -3,7 +3,7 @@
          (prefix-in : br-parser-tools/lex-sre))
 
 (define-lex-abbrev id (:+ (:or (:/ "A" "Z" "a" "z" "0" "9")
-                               (char-set "?!-_:/"))))
+                               (char-set "?!-_:/=<>"))))
 
 (define (make-tokenizer port)
   (port-count-lines! port)

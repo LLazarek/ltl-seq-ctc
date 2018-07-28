@@ -22,14 +22,35 @@
                  )
     #'(define ID-STX (ltl-formula BODY ...))))
 
+
 (define-macro-cases ltl-formula
-  [(ltl-formula "X" FORMULA)
-   #'(list 'c/next (ltl-formula FORMULA))]
+  [(ltl-formula "X" A)
+   #'(list 'c/next (ltl-formula A))]
+  [(ltl-formula A "U" B)
+   #'(list 'c/until (ltl-formula A) (ltl-formula B))]
+  [(ltl-formula "not" A)
+   #'(list 'c/not (ltl-formula A))]
+  [(ltl-formula A "or" B)
+   #'(list 'c/or (ltl-formula A) (ltl-formula B))]
+  [(ltl-formula A "and" B)
+   #'(list 'c/and (ltl-formula A) (ltl-formula B))]
+  [(ltl-formula A "=>" B)
+   #'(list 'c/implies (ltl-formula A) (ltl-formula B))]
+  [(ltl-formula A "<=>" B)
+   #'(list 'c/iff (ltl-formula A) (ltl-formula B))]
+  [(ltl-formula A "R" B)
+   #'(list 'c/release (ltl-formula A) (ltl-formula B))]
+  [(ltl-formula "F" A)
+   #'(list 'c/eventually (ltl-formula A))]
+  [(ltl-formula "G" A)
+   #'(list 'c/globally (ltl-formula A))]
   [(ltl-formula PRED)
    (with-pattern ([PRED-ID (format-id #'PRED "~a" (syntax-e #'PRED))])
      #'(list 'primitive/first PRED-ID))]
   [(ltl-formula A ...)
    #''(catch-all A ...)])
+
+;; todo: Add parenthesization
 
 (provide ltl-definitions def-requires formula-def)
 (require racket/list)

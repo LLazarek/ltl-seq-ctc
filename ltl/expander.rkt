@@ -14,13 +14,13 @@
   (with-pattern ([ID (format-id #'ID-STR "~a" (syntax-e #'ID-STR))])
     #'(require ID)))
 
-(define-macro (formula-def "[" ID BODY ... "]")
+(define-macro (formula-def "[" ID BODY "]")
   ;; Using format-id allows the id definition to be seen
   ;; Outside the macro
   (with-pattern ([ID-STX (format-id #'ID "~a" (syntax-e #'ID))]
                  ;; [(BODY-STX ...) (format-datum '~a #'(BODY ...))]
                  )
-    #'(define ID-STX (ltl-formula BODY ...))))
+    #'(define ID-STX BODY)))
 
 
 (define-macro-cases ltl-formula
@@ -44,15 +44,28 @@
    #'(list 'c/eventually (ltl-formula A))]
   [(ltl-formula "G" A)
    #'(list 'c/globally (ltl-formula A))]
+
+  ;; Deal with nesting introduced by parenthesized formulas
+  [(ltl-formula (paren-ltl-formula FORM ...))
+   #'(ltl-formula FORM ...)]
+  [(ltl-formula (ltl-formula FORM ...))
+   #'(ltl-formula FORM ...)]
+
+  ;; Handle plain predicate
   [(ltl-formula PRED)
    (with-pattern ([PRED-ID (format-id #'PRED "~a" (syntax-e #'PRED))])
      #'(list 'primitive/first PRED-ID))]
+
+  ;; Failure clause
   [(ltl-formula A ...)
    #''(catch-all A ...)])
 
+(define-macro (paren-ltl-formula FORM ...)
+  #'(ltl-formula FORM ...))
+
 ;; todo: Add parenthesization
 
-(provide ltl-definitions def-requires formula-def)
+(provide ltl-definitions ltl-formula paren-ltl-formula def-requires formula-def)
 (require racket/list)
 (provide (all-from-out racket/list))
 

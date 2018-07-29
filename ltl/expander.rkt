@@ -62,7 +62,7 @@
 
   ;; Failure clause
   [(ltl-formula A ...)
-   #''(catch-all A ...)])
+   #'(error (format "Invalid ltl formula operator/element in: ~a" '(A ...)))])
 
 (define-macro (paren-ltl-formula FORM ...)
   #'(ltl-formula FORM ...))

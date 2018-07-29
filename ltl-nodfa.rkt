@@ -1,6 +1,7 @@
 #lang racket
 
-(provide primitive/first
+(provide run-consumer
+         primitive/first
          c/next
          c/until
          c/not
@@ -12,10 +13,9 @@
          c/eventually
          c/globally)
 
-;; -------------------- Fundamental definitions --------------------
-(define world/c any/c)
 
-(define result/c (or/c 't 'f '?))
+;; -------------------- Fundamental definitions --------------------
+(require "common.rkt")
 (define result/good? (curry equal? 't))
 (define result/bad? (curry equal? 'f))
 (define result/indeterminate? (curry equal? '?))
@@ -42,32 +42,10 @@
 
         [else 'f]))
 
-;; An ltl formula's encoding is a Consumer
-(define consumer/c
-  (-> world/c (values result/c (recursive-contract consumer/c))))
-
 
 ;; -------------------- Testing preliminaries --------------------
-(define/contract (run-consumer generator seq [init '?])
-  (->* (consumer/c (listof world/c))
-       (result/c)
-       result/c)
-
-  (if (empty? seq)
-      init
-      (let-values ([(accept? next-consumer) (generator (first seq))])
-        (run-consumer next-consumer (rest seq) accept?))))
-
 (module+ test
-  (require rackunit) 
-
-  (define-syntax (check-runs stx)
-    (syntax-case stx (: ->)
-      [(check-runs consumer : seq ... -> res)
-       (syntax/loc stx
-         (check-equal? (run-consumer consumer '(seq ...)) 'res))])))
-
-
+  (require "test-common.rkt"))
 
 ;; -------------------- Primitive ltl constructors --------------------
 ;; A primitive constructor converts a value or predicate into a consumer
@@ -389,27 +367,27 @@
          (c/implies right-c left-c)))
 
 (module+ test
-  (define x2<->x22 (c/iff (c/next =2-c)
-                          (c/next (c/next =2-c))))
+  (define x2<->x22-c (c/iff (c/next =2-c)
+                            (c/next (c/next =2-c))))
   ;; Not enough info yet
-  (check-runs x2->x22-c :  -> ?)
-  (check-runs x2->x22-c : 0 -> ?)
-  (check-runs x2->x22-c : 0 2 -> ?)
+  (check-runs x2<->x22-c :  -> ?)
+  (check-runs x2<->x22-c : 0 -> ?)
+  (check-runs x2<->x22-c : 0 2 -> ?)
 
   ;; Premise satisfied and so is conclusion
-  (check-runs x2<->x22 : 0 2 2 6 -> t)
+  (check-runs x2<->x22-c : 0 2 2 6 -> t)
   ;; Premise not satisfied...
   ;; But conclusion is
-  (check-runs x2<->x22 : a b 2 -> f)
-  (check-runs x2<->x22 : 0 1 2 -> f)
+  (check-runs x2<->x22-c : a b 2 -> f)
+  (check-runs x2<->x22-c : 0 1 2 -> f)
   ;; and neither is conclusion
-  (check-runs x2<->x22 : a b c -> t)
-  (check-runs x2<->x22 : 1 3 5 -> t)
+  (check-runs x2<->x22-c : a b c -> t)
+  (check-runs x2<->x22-c : 1 3 5 -> t)
 
   ;; Premise satisfied but not conclusion
-  (check-runs x2<->x22 : 1 2 3 5 -> f)
-  (check-runs x2<->x22 : 1 2 a b -> f)
-  (check-runs x2<->x22 : a 2 4 6 -> f))
+  (check-runs x2<->x22-c : 1 2 3 5 -> f)
+  (check-runs x2<->x22-c : 1 2 a b -> f)
+  (check-runs x2<->x22-c : a 2 4 6 -> f))
 
 
 
@@ -431,7 +409,9 @@
   (check-runs 2rn-c : 1 3 5 2 -> t)
   ;; Get the release and then whatever
   (check-runs 2rn-c : 2 a -> t)
-  (check-runs 2rn-c : 1 2 #f c -> t))
+  (check-runs 2rn-c : 1 2 #f c -> t)
+  ;; Fail the held condition before getting release
+  (check-runs 2rn-c : 1 3 #f 2 #f c -> f))
 
 
 
@@ -444,6 +424,10 @@
 (module+ test
   (define ev2-c (c/eventually =2-c))
 
+  ;; Eventually can only ever give ? or t
+  ;; because there is never enough elements to prove an eventually
+  ;; formula false (because every finite seq is treated as a prefix of
+  ;; an inf trace)
   (check-runs ev2-c :  -> ?)
   (check-runs ev2-c : a b -> ?)
   (check-runs ev2-c : a b 2 -> t)
@@ -459,10 +443,9 @@
 (module+ test
   (define all-n-c (c/globally num-c))
 
+  ;; Globally can only ever give ? or f
+  ;; by the same logic as eventually
   (check-runs all-n-c :  -> ?)
-  ;; Note that there is never enough elements to prove a globally
-  ;; formula true (because every finite seq is treated as a prefix of
-  ;; an inf trace)
   (check-runs all-n-c : 1 -> ?)
   (check-runs all-n-c : 1 2.0 3.3 4 -> ?)
   (check-runs all-n-c : a b -> f)

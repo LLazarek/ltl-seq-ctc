@@ -23,30 +23,31 @@
   (with-pattern ([ID-STX (format-id #'ID "~a" (syntax-e #'ID))]
                  ;; [(BODY-STX ...) (format-datum '~a #'(BODY ...))]
                  )
-    #'(define ID-STX BODY)))
+    #'(begin (define ID-STX BODY)
+             (provide ID-STX))))
 
 
 (define-macro-cases ltl-formula
   [(ltl-formula "X" A)
-   #'(list 'c/next (ltl-formula A))]
+   #'(c/next (ltl-formula A))]
   [(ltl-formula A "U" B)
-   #'(list 'c/until (ltl-formula A) (ltl-formula B))]
+   #'(c/until (ltl-formula A) (ltl-formula B))]
   [(ltl-formula "not" A)
-   #'(list 'c/not (ltl-formula A))]
+   #'(c/not (ltl-formula A))]
   [(ltl-formula A "or" B)
-   #'(list 'c/or (ltl-formula A) (ltl-formula B))]
+   #'(c/or (ltl-formula A) (ltl-formula B))]
   [(ltl-formula A "and" B)
-   #'(list 'c/and (ltl-formula A) (ltl-formula B))]
+   #'(c/and (ltl-formula A) (ltl-formula B))]
   [(ltl-formula A "=>" B)
-   #'(list 'c/implies (ltl-formula A) (ltl-formula B))]
+   #'(c/implies (ltl-formula A) (ltl-formula B))]
   [(ltl-formula A "<=>" B)
-   #'(list 'c/iff (ltl-formula A) (ltl-formula B))]
+   #'(c/iff (ltl-formula A) (ltl-formula B))]
   [(ltl-formula A "R" B)
-   #'(list 'c/release (ltl-formula A) (ltl-formula B))]
+   #'(c/release (ltl-formula A) (ltl-formula B))]
   [(ltl-formula "F" A)
-   #'(list 'c/eventually (ltl-formula A))]
+   #'(c/eventually (ltl-formula A))]
   [(ltl-formula "G" A)
-   #'(list 'c/globally (ltl-formula A))]
+   #'(c/globally (ltl-formula A))]
 
   ;; Deal with nesting introduced by parenthesized formulas
   [(ltl-formula (paren-ltl-formula FORM ...))
@@ -57,7 +58,7 @@
   ;; Handle plain predicate
   [(ltl-formula PRED)
    (with-pattern ([PRED-ID (format-id #'PRED "~a" (syntax-e #'PRED))])
-     #'(list 'primitive/first PRED-ID))]
+     #'(primitive/first PRED-ID))]
 
   ;; Failure clause
   [(ltl-formula A ...)
@@ -66,6 +67,7 @@
 (define-macro (paren-ltl-formula FORM ...)
   #'(ltl-formula FORM ...))
 
-
+(require "../ltl-nodfa.rkt")
+(provide (all-from-out "../ltl-nodfa.rkt"))
 (provide ltl-definitions ltl-formula paren-ltl-formula def-requires formula-def)
 

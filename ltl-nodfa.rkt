@@ -1,5 +1,17 @@
 #lang racket
 
+(provide primitive/first
+         c/next
+         c/until
+         c/not
+         c/or
+         c/and
+         c/implies
+         c/iff
+         c/release
+         c/eventually
+         c/globally)
+
 ;; -------------------- Fundamental definitions --------------------
 (define world/c any/c)
 

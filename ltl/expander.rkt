@@ -10,9 +10,12 @@
       DEF-REQUIRES
       FORMULA ...))
 
-(define-macro (def-requires "(" "require" ID-STR ")")
-  (with-pattern ([ID (format-id #'ID-STR "~a" (syntax-e #'ID-STR))])
-    #'(require ID)))
+(define-macro-cases def-requires
+  [(def-requires "(" "require" (string-module-path PATH-STR) ")")
+   #'(require PATH-STR)]
+  [(def-requires "(" "require" ID-STR ")")
+   (with-pattern ([ID (format-id #'ID-STR "~a" (syntax-e #'ID-STR))])
+     #'(require ID))])
 
 (define-macro (formula-def "[" ID BODY "]")
   ;; Using format-id allows the id definition to be seen
@@ -63,9 +66,6 @@
 (define-macro (paren-ltl-formula FORM ...)
   #'(ltl-formula FORM ...))
 
-;; todo: Add parenthesization
 
 (provide ltl-definitions ltl-formula paren-ltl-formula def-requires formula-def)
-(require racket/list)
-(provide (all-from-out racket/list))
 

@@ -3,7 +3,7 @@
          (prefix-in : br-parser-tools/lex-sre))
 
 (define-lex-abbrev id (:+ (:or (:/ "A" "Z" "a" "z" "0" "9")
-                               (char-set "?!-_:/=<>"))))
+                               (char-set "!@#$%^&*-=+_:/=<>.?"))))
 
 (define (make-tokenizer port)
   (port-count-lines! port)
@@ -12,7 +12,8 @@
       (lexer
        [(eof) eof]
        [(from/to ";" "\n") (next-token)]
-       [(:or (char-set "[]()") "require") lexeme]
+       [(from/to "\"" "\"") (token 'STRING-TOK (trim-ends "\"" lexeme "\""))]
+       [(:or (char-set "[]()\"") "require") lexeme]
        [id
         (token 'ID-TOK lexeme
                #:position (pos lexeme-start)

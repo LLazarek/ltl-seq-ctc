@@ -9,19 +9,19 @@
   [ltl true
        false
        (first p)
-       (all p)
-       (not ltl)
-       (or ltl ltl)
        (next ltl)
        (until ltl ltl)
+       (not ltl)
+       (or ltl ltl)
        (and ltl ltl)
        (implies ltl ltl)
        (iff ltl ltl)
        (release ltl ltl)
        (eventually ltl)
        (globally ltl)
-       (weak-until ltl ltl)
-       (strong-release ltl ltl)]
+       ;; (weak-until ltl ltl)
+       ;; (strong-release ltl ltl)
+       ]
   [seq empty
        (cons seq-el seq)]
   [ltl-state (state/left ltl r seq)
@@ -29,18 +29,25 @@
              (state/right ltl r seq)]
   [meta-state (meta/not ltl-state)
               (meta/or ltl-state ltl-state)
-              (meta/until ltl-state ltl-state ltl)]
+              (meta/until ltl-state ltl-state
+                          ltl ltl
+                          seq)]
   [meta-E hole
           (meta/not meta-E)
           (meta/or meta-E ltl-state)
           (meta/or (state/right ltl r seq) meta-E)
-          (meta/until (state/mid ltl r seq) meta-E ltl)
-          (meta/until meta-E ltl-state ltl)]
+          (meta/until (state/mid ltl r seq) meta-E
+                      ltl ltl
+                      seq)
+          (meta/until meta-E ltl-state
+                      ltl ltl
+                      seq)]
 
   [p predλ-e]
   [seq-el predλ-v]
   [r #t
-     #f]
+     #f
+     ?]
 
   [predλ-e x
            #t #f
@@ -170,7 +177,8 @@
 (define-metafunction ltl-lang
   not-metafn : r -> r
   [(not-metafn #t) #f]
-  [(not-metafn #f) #t])
+  [(not-metafn #f) #t]
+  [(not-metafn ?) ?])
 (module+ test
   (test-equal (term (not-metafn #t))
               (term #f))
@@ -180,8 +188,10 @@
 (define-metafunction ltl-lang
   or-metafn : r r -> r
   [(or-metafn #t r) #t]
-  [(or-metafn #f #t) #t]
-  [(or-metafn #f #f) #f])
+  [(or-metafn #f r) r]
+  [(or-metafn ? #f) ?]
+  [(or-metafn ? #t) #t]
+  [(or-metafn ? ?) ?])
 (module+ test
   (test-equal (term (or-metafn #t #t))
               (term #t))
@@ -234,28 +244,142 @@
         r-first/reset)
 
 
-   (==> (state/left (all p) r (cons seq-el seq))
-        (state/right (all p) #t seq)
-        (side-condition
-         (not (equal? (apply-reduction-relation* predλ-red (term (p seq-el)))
-                      (list (term #f)))))
-        r-all-true)
-   (==> (state/left (all p) r (cons seq-el seq))
+   (==> (state/left (next ltl) r (cons seq-el seq))
+        (state/right ltl ? seq)
+        r-next)
+
+
+   ;; -------------------- begin Until --------------------
+
+   ;; Since the model can move back and forth in time without restriction,
+   ;; it can evaluate full ltl sub-formulas by just saving the current
+   ;; point in time (sequence + formula states) and allowing the sub-formulas
+   ;; to progress until finished, and rolling back to the saved state as
+   ;; necessary.
+   ;;
+   ;; This will look as follows:
+   ;; (state (until A B) _ seq) -->
+   ;; (meta (state/mid A _ seq) (state/left B _ seq) A B seq)
+   ;;
+   ;; This allows B to progress until a conclusion is reached, either #t or #f
+   ;; If it's #t, we're done: --> (state true ...)
+   ;; If it's #f,
+   ;; (meta (state/mid A _ seq) (state/right _ #f _) A B seq) -->
+   ;; (meta (state/left A _ seq) (state/right ...) A B seq)
+   ;;
+   ;; This allows A to progress (from the start!; we roll back time to the saved
+   ;; original sequence) until a conclusion is reached
+   ;; If it's #f, we're done: --> (state false ...)
+   ;; If it's #t,
+   ;; (meta (state/right _ #t _) (state/right ...) A B seq) -->
+   ;; (state (until A B) ? (rest seq))
+   ;;
+   ;; Now the question remains of how to deal with the fact that now we can be
+   ;; inside a meta state at the end of a sequence. Obviously in such a case we
+   ;; should return ?.
+   ;; Actually, it doesn't matter because this model has no notion of
+   ;; "returning" a judgment. It is simply *in* a state and we inspect the
+   ;; state to determine what its judgment is.
+   ;; So we can just assume that any time it's in a meta state, its
+   ;; judgment is ?.
+   ;;
+   ;; The only problem this raises is that of mild inconsistency with the
+   ;; simpler formulas, where with those the outcome is explicitly stored
+   ;; in the state, while with until it must be implicitly inferred
+   ;; from the state.
+   ;; Can this easily be resolved?
+   ;; I suppose it can in the sense that a meta state always implies ?,
+   ;; so we can tell if the model accepts by trying to match
+   ;; (ltl-state _ #t _)
+   ;; and we can tell if it rejects by trying to match
+   ;; (ltl-state _ #f _)
+   ;; and if neither apply then it must be ?.
+   (==> (state/left (until ltl_A_0 ltl_B_0) r_0 (cons seq-el seq))
+        (meta/until (state/mid ltl_A_0 r_0 (cons seq-el seq))
+                    (state/left ltl_B_0 r_0 (cons seq-el seq))
+                    ltl_A_0
+                    ltl_B_0
+                    (cons seq-el seq))
+        r-until/meta-enter-B)
+   ;; Now, subterm ltl_B_0 can take as many steps as necessary...
+   (==> (meta/until (state/mid ltl_A_0 r_0 (cons seq-el seq))
+                    (state/right ltl_B ? seq_1)
+                    ltl_A_0
+                    ltl_B_0
+                    (cons seq-el seq))
+        (meta/until (state/mid ltl_A_0 r_0 (cons seq-el seq))
+                    (state/left ltl_B ? seq_1)
+                    ltl_A_0
+                    ltl_B_0
+                    (cons seq-el seq))
+        r-until/meta-step-B)
+   ;; ... until it reaches a good/bad prefix
+   ;; B reached a good prefix, so we can transition right to true
+   (==> (meta/until (state/mid ltl_A_0 r_0 (cons seq-el seq))
+                    (state/right ltl_B #t seq_1)
+                    ltl_A_0
+                    ltl_B_0
+                    (cons seq-el seq))
+        ;; But note that we rewind the sequence to the element AFTER the
+        ;; one that started the sequence B accepted.
+        (state/right true #t seq_1)
+        r-until/meta-exit/B-true)
+   ;; B reached a bad prefix, so set up A to step
+   (==> (meta/until (state/mid ltl_A_0 r_0 (cons seq-el seq))
+                    (state/right ltl_B #f seq_1)
+                    ltl_A_0
+                    ltl_B_0
+                    (cons seq-el seq))
+        (meta/until (state/left ltl_A_0 r_0 (cons seq-el seq))
+                    (state/right ltl_B #f seq_1)
+                    ltl_A_0
+                    ltl_B_0
+                    (cons seq-el seq))
+        r-until/meta-enter-A)
+   ;; Now, subterm ltl_A_0 can take as many steps as necessary...
+   (==> (meta/until (state/right ltl_A ? seq_1)
+                    (state/right ltl_B #f seq_2)
+                    ltl_A_0
+                    ltl_B_0
+                    (cons seq-el seq))
+        (meta/until (state/left ltl_A ? seq_1)
+                    (state/right ltl_B #f seq_2)
+                    ltl_A_0
+                    ltl_B_0
+                    (cons seq-el seq))
+        r-until/meta-step-A)
+   ;; ... until it reaches a good/bad prefix
+   ;; A reached a bad prefix, so we can transition right to false
+   (==> (meta/until (state/right ltl_A #f seq_1)
+                    (state/right ltl_B #f seq_2)
+                    ltl_A_0
+                    ltl_B_0
+                    (cons seq-el seq))
         (state/right false #f seq)
-        (side-condition
-         (equal? (apply-reduction-relation* predλ-red (term (p seq-el)))
-                 (list (term #f))))
-        r-all-false)
-   (--> (state/right (all p) r seq)
-        (state/left (all p) r seq)
-        r-all/reset)
+        r-until/meta-exit/A-false)
+   ;; A reached a good prefix, so we can transition back to our starting
+   ;; until formula and rewind back to the second element of the
+   ;; original sequence
+   (==> (meta/until (state/right ltl_A #t seq_1)
+                    (state/right ltl_B #f seq_2)
+                    ltl_A_0
+                    ltl_B_0
+                    (cons seq-el seq))
+        (state/right (until ltl_A_0 ltl_B_0) ? seq)
+        r-until/meta-exit/A-true)
+   (--> (state/right (until ltl_A ltl_B_0) r seq)
+        (state/left (until ltl_A ltl_B_0) r seq)
+        r-until/reset)
+
+   ;; -------------------- end Until --------------------
+
 
 
    (==> (state/left (not ltl_0) r_0 (cons seq-el seq))
         (meta/not (state/left ltl_0 r_0 (cons seq-el seq)))
         r-not/meta-enter)
    ;; Now, subterm (state/left ltl r (cons seq-el seq))
-   ;; may take a single reduction step -> (state/right ...)
+   ;; may take steps as necessary -> (state/right ...)
    (==> (meta/not (state/right ltl r seq))
         (state/right (not ltl) (not-metafn r) seq)
         r-not/meta-exit)
@@ -268,7 +392,7 @@
         (meta/or (state/left ltl_A_0 r_0 (cons seq-el seq))
                  (state/left ltl_B_0 r_0 (cons seq-el seq)))
         r-or/meta-enter)
-   ;; Now, subterms ltl_A and ltl_B can take a single step each
+   ;; Now, subterms ltl_A and ltl_B can both step as necessary
    (==> (meta/or (state/right ltl_A r_A seq)
                  (state/right ltl_B r_B seq))
         (state/right (or ltl_A ltl_B) (or-metafn r_A r_B) seq)

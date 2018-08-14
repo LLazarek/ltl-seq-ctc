@@ -100,5 +100,89 @@
   (check-true (judgment-holds (~> (state true #t (cons zero empty))
                                   (state true #t empty)))))
 
+
+;; -------------------- Random parity checking --------------------
+(module+ test
+  (define-syntax-rule (assert expr)
+    (unless expr
+      (error "Assertion failed:" 'expr)))
+
+
+  (define (extract-binding match-list sym)
+    (define match-struct (first match-list))
+    (define bindings (match-bindings match-struct))
+    (struct nothing ())
+    (define matching-binding
+      (for/fold ([sym-binding (nothing)])
+                ([binding (in-list bindings)])
+        (if (equal? (bind-name binding) sym)
+            (bind-exp binding)
+            sym-binding)))
+    (if (nothing? matching-binding)
+        (error "No binding found for ~v in ~v!" sym bindings)
+        matching-binding))
+  (define (get-outcome/ctx ltl-formula seq)
+    (assert (redex-match? ltl-lang ltl ltl-formula))
+    (assert (not (redex-match? ltl-lang empty seq)))
+
+    (define end-terms
+      (apply-reduction-relation* ltl-red
+                                 (term (state/left ,ltl-formula ? ,seq))))
+    (define end-term (first end-terms))
+    (define matched/state-variant (redex-match ltl-lang
+                                               (ltl-state-variant _ r _)
+                                               end-term))
+    (define matches-meta? (redex-match? ltl-lang meta-state end-term))
+
+    (define false-or-empty? (or/c false? empty?))
+    (cond [matches-meta?
+           (term ?)]
+
+          [(not (false-or-empty? matched/state-variant))
+           (extract-binding matched/state-variant 'r)]
+
+          [else
+           (error "Something went horribly wrong")]))
+  (define-syntax-rule (get-outcome/ctx* ltl-formula seq)
+    (get-outcome/ctx (term ltl-formula) (term seq)))
   
-  (judgment-holds (~> (state true #t (cons zero empty)) (state true #t empty))))
+
+
+  (check-equal? (get-outcome/ctx* (first zero?)
+                                  (cons zero empty))
+                #t)
+  (check-equal? (get-outcome/ctx* (next (first zero?))
+                                  (cons #f empty))
+                '?)
+  (check-equal? (get-outcome/ctx* (next (first zero?))
+                                  (cons #f (cons ,one empty)))
+                #f)
+  (check-equal? (get-outcome/ctx* (until (first ,<=3?) (first zero?))
+                                  (cons ,one (cons ,four empty)))
+                #f)
+  (check-equal? (get-outcome/ctx* (until (first ,<=3?) (first zero?))
+                                  (cons zero empty))
+                #t)
+  (check-equal? (get-outcome/ctx* (until (first ,<=3?) (first zero?))
+                                  (cons ,one empty))
+                '?)
+  (check-equal? (get-outcome/ctx* (until (first ,<=3?) (first zero?))
+                                  (cons ,one (cons ,two empty)))
+                '?)
+
+
+
+  ;; todo: Doesn't work
+  (define (get-outcome/jf ltl-formula seq)
+    (judgment-holds (~> (state ,ltl-formula ? seq)
+                        (state ltl outcome seq_1))
+                    outcome))
+  (define-syntax-rule (get-outcome/jf* ltl-formula seq)
+    (get-outcome/jf (term ltl-formula) (term seq)))
+
+
+
+  (define (models-equivalent-for ltl-formula seq)
+    (define ctx-outcome (get-outcome/ctx ltl-formula seq))
+    (define jf-outcome (get-outcome/jf ltl-formula seq))
+    (equal? ctx-outcome jf-outcome)))

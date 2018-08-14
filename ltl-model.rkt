@@ -1,9 +1,11 @@
 #lang racket
 
+(provide (all-defined-out) ltl-lang)
+
 (require redex)
 
 (module+ test
-  (require rackunit))
+  (require "model-test-common.rkt"))
 
 (define-language ltl-lang
   [ltl true
@@ -24,9 +26,8 @@
        ]
   [seq empty
        (cons seq-el seq)]
-  [ltl-state (state/left ltl r seq)
-             (state/mid ltl r seq)
-             (state/right ltl r seq)]
+  [ltl-state-variant state/left state/mid state/right]
+  [ltl-state (ltl-state-variant ltl r seq)]
   [meta-state (meta/not ltl-state)
               (meta/or ltl-state ltl-state)
               (meta/until ltl-state ltl-state
@@ -435,14 +436,6 @@
     (==> a b)]))
 
 (module+ test
-  (define <=3? (term (λ (x) (zero? (pred (pred (pred x)))))))
-  (define >3? (term (negate ,<=3?)))
-  (define <=1? (term (λ (x) (zero? (pred x)))))
-  (define one (term (succ zero)))
-  (define two (term (succ ,one)))
-  (define three (term (succ ,two)))
-  (define four (term (succ ,three)))
-
   ;; -------------------- true, false --------------------
   (test-->> ltl-red
             (term (state/left

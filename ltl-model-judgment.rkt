@@ -19,86 +19,112 @@
 (define-judgment-form ltl-lang
   #:mode (~> I O)
   [--- "true"
-       (~> (state true r (cons seq-el seq)) (state true #t seq))]
+       (~> (state/left true r (cons seq-el seq)) (state/left true #t seq))]
   [--- "false"
-       (~> (state false r (cons seq-el seq)) (state false #f seq))]
+       (~> (state/left false r (cons seq-el seq)) (state/left false #f seq))]
 
-  [(side-condition (reduces-with predλ-red : (p seq-el) -/-> #f))
+
+  ;; This doesn't work??
+  ;; I have tried replacing with the identical expr that works in ltl-model.
+  ;; Still doesn't seem to guard properly.
+  ;; This makes me wonder if `side-condition` behaves the same way for
+  ;; judgment forms as it does for reduction relations. But the docs say they
+  ;; do behave the same way.
+  ;; Nonetheless, manually testing each of the (reduces-with ...) with
+  ;; (term (zero? zero)) produces the expected results (ie not both #t).
+  ;; An interesting thing though is that print statements inside
+  ;; the side-condition never get printed!
+  ;; Doing the same in ltl-red *does* cause the expected printouts
+  ;; (e.g. with `traces`), so it seems that the side condition is being
+  ;; ignored entirely..
+  ;; 
+  [(side-condition (begin
+                     (printf "first/t: checking ~v -/-> #f\n" (term (p seq-el)))
+                     (reduces-with predλ-red : (p seq-el) -/-> #f)))
    --- "first/t"
-   (~> (state (first p) r (cons seq-el seq))
-       (state true #t seq))]
-  [(side-condition (reduces-with predλ-red : (p seq-el) --> #f))
+   (~> (state/left (first p) r (cons seq-el seq))
+       (state/left true #t seq))]
+  [(side-condition (begin
+                     (printf "first/f: checking ~v --> #f\n" (term (p seq-el)))
+                     (reduces-with predλ-red : (p seq-el) --> #f)))
    --- "first/f"
-   (~> (state (first p) r (cons seq-el seq))
-       (state false #f seq))]
+   (~> (state/left (first p) r (cons seq-el seq))
+       (state/left false #f seq))]
 
   [
    --- "next"
-   (~> (state (next ltl) r (cons seq-el seq))
-       (state ltl ? seq))]
+   (~> (state/left (next ltl) r (cons seq-el seq))
+       (state/left ltl ? seq))]
 
-  [(~> (state ltl_B r (cons seq-el seq))
-       (state _     #t _))
+  [(~> (state/left ltl_B r (cons seq-el seq))
+       (state/left _     #t _))
    --- "until/B-t"
-   (~> (state (until ltl_A ltl_B) r (cons seq-el seq))
-       (state true #t seq))]
-  [(~> (state ltl_B r (cons seq-el seq))
-       (state _     #f _))
-   (~> (state ltl_A r (cons seq-el seq))
-       (state _     #t _))
+   (~> (state/left (until ltl_A ltl_B) r (cons seq-el seq))
+       (state/left true #t seq))]
+  [(~> (state/left ltl_B r (cons seq-el seq))
+       (state/left _     #f _))
+   (~> (state/left ltl_A r (cons seq-el seq))
+       (state/left _     #t _))
    --- "until/B-f/A-t"
-   (~> (state (until ltl_A ltl_B) r (cons seq-el seq))
-       (state (until ltl_A ltl_B) r seq))]
-  [(~> (state ltl_B r (cons seq-el seq))
-       (state _     #f _))
-   (~> (state ltl_A r (cons seq-el seq))
-       (state _     #f _))
+   (~> (state/left (until ltl_A ltl_B) r (cons seq-el seq))
+       (state/left (until ltl_A ltl_B) r seq))]
+  [(~> (state/left ltl_B r (cons seq-el seq))
+       (state/left _     #f _))
+   (~> (state/left ltl_A r (cons seq-el seq))
+       (state/left _     #f _))
    --- "until/B-f/A-f"
-   (~> (state (until ltl_A ltl_B) r (cons seq-el seq))
-       (state false #f seq))]
+   (~> (state/left (until ltl_A ltl_B) r (cons seq-el seq))
+       (state/left false #f seq))]
 
-  [(~> (state ltl_0 r_0 (cons seq-el seq))
-       (state ltl_1 r_1 seq))
+  [(~> (state/left ltl_0 r_0 (cons seq-el seq))
+       (state/left ltl_1 r_1 seq))
    --- "not"
-   (~> (state (not ltl_0) r_0 (cons seq-el seq))
-       (state (not ltl_1) (not-metafn r_1) seq))]
+   (~> (state/left (not ltl_0) r_0 (cons seq-el seq))
+       (state/left (not ltl_1) (not-metafn r_1) seq))]
 
-  [(~> (state ltl_A_0 r_0 (cons seq-el seq))
-       (state ltl_A_1 r_A seq))
-   (~> (state ltl_B_0 r_0 (cons seq-el seq))
-       (state ltl_B_1 r_B seq))
+  [(~> (state/left ltl_A_0 r_0 (cons seq-el seq))
+       (state/left ltl_A_1 r_A seq))
+   (~> (state/left ltl_B_0 r_0 (cons seq-el seq))
+       (state/left ltl_B_1 r_B seq))
    --- "or"
-   (~> (state (or ltl_A_0 ltl_B_0) r_0 (cons seq-el seq))
-       (state (or ltl_A_1 ltl_B_1) (or-metafn r_A r_B) seq))]
+   (~> (state/left (or ltl_A_0 ltl_B_0) r_0 (cons seq-el seq))
+       (state/left (or ltl_A_1 ltl_B_1) (or-metafn r_A r_B) seq))]
 
   [
    --- "and"
-   (~> (state (and ltl_A ltl_B) r seq)
-       (state (not (or (not ltl_A) (not ltl_B))) r seq))]
+   (~> (state/left (and ltl_A ltl_B) r seq)
+       (state/left (not (or (not ltl_A) (not ltl_B))) r seq))]
   [
    --- "implies"
-   (~> (state (implies ltl_A ltl_B) r seq)
-       (state (or (not ltl_A) ltl_B) r seq))]
+   (~> (state/left (implies ltl_A ltl_B) r seq)
+       (state/left (or (not ltl_A) ltl_B) r seq))]
   [
    --- "iff"
-   (~> (state (iff ltl_A ltl_B) r seq)
-       (state (and (implies ltl_A ltl_B) (implies ltl_B ltl_A)) r seq))]
+   (~> (state/left (iff ltl_A ltl_B) r seq)
+       (state/left (and (implies ltl_A ltl_B) (implies ltl_B ltl_A)) r seq))]
   [
    --- "release"
-   (~> (state (release ltl_A ltl_B) r seq)
-       (state (not (until (not ltl_A) (not ltl_B))) r seq))]
+   (~> (state/left (release ltl_A ltl_B) r seq)
+       (state/left (not (until (not ltl_A) (not ltl_B))) r seq))]
   [
    --- "eventually"
-   (~> (state (eventually ltl) r seq)
-       (state (until true ltl) r seq))]
+   (~> (state/left (eventually ltl) r seq)
+       (state/left (until true ltl) r seq))]
   [
    --- "globally"
-   (~> (state (globally ltl) r seq)
-       (state (not (eventually (not ltl))) r seq))])
+   (~> (state/left (globally ltl) r seq)
+       (state/left (not (eventually (not ltl))) r seq))])
 
 (module+ test
-  (check-true (judgment-holds (~> (state true #t (cons zero empty))
-                                  (state true #t empty)))))
+  (check-true
+   (judgment-holds (~> (state/left true #t (cons zero empty))
+                       (state/left true #t empty))))
+  (check-false
+   (judgment-holds (~> (state/left (first zero?) ? (cons zero empty))
+                       (state/left false #f empty))))
+  (check-true
+   (judgment-holds (~> (state/left (first zero?) ? (cons zero empty))
+                       (state/left true #t empty)))))
 
 
 ;; -------------------- Random parity checking --------------------
@@ -174,8 +200,8 @@
 
   ;; todo: Doesn't work
   (define (get-outcome/jf ltl-formula seq)
-    (judgment-holds (~> (state ,ltl-formula ? seq)
-                        (state ltl outcome seq_1))
+    (judgment-holds (~> (state/left ,ltl-formula ? seq)
+                        (state/left ltl outcome seq_1))
                     outcome))
   (define-syntax-rule (get-outcome/jf* ltl-formula seq)
     (get-outcome/jf (term ltl-formula) (term seq)))

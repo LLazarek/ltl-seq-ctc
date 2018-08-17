@@ -75,28 +75,52 @@
 
   [
    --- "and"
-   (~> (state/left (and ltl_A ltl_B) r seq)
-       (state/left (not (or (not ltl_A) (not ltl_B))) r seq))]
+   (~> (state/left (in-hole ltl-expand-ctx
+                            (and ltl_A ltl_B))
+                   r seq)
+       (state/left (in-hole ltl-expand-ctx
+                            (not (or (not ltl_A) (not ltl_B))))
+                   r seq))]
   [
    --- "implies"
-   (~> (state/left (implies ltl_A ltl_B) r seq)
-       (state/left (or (not ltl_A) ltl_B) r seq))]
+   (~> (state/left (in-hole ltl-expand-ctx
+                            (implies ltl_A ltl_B))
+                   r seq)
+       (state/left (in-hole ltl-expand-ctx (or (not ltl_A)
+                                               ltl_B))
+                   r seq))]
   [
    --- "iff"
-   (~> (state/left (iff ltl_A ltl_B) r seq)
-       (state/left (and (implies ltl_A ltl_B) (implies ltl_B ltl_A)) r seq))]
+   (~> (state/left (in-hole ltl-expand-ctx
+                            (iff ltl_A ltl_B))
+                   r seq)
+       (state/left (in-hole ltl-expand-ctx
+                            (and (implies ltl_A ltl_B) (implies ltl_B ltl_A)))
+                   r seq))]
   [
    --- "release"
-   (~> (state/left (release ltl_A ltl_B) r seq)
-       (state/left (not (until (not ltl_A) (not ltl_B))) r seq))]
+   (~> (state/left (in-hole ltl-expand-ctx
+                            (release ltl_A ltl_B))
+                   r seq)
+       (state/left (in-hole ltl-expand-ctx
+                            (not (until (not ltl_A) (not ltl_B))))
+                   r seq))]
   [
    --- "eventually"
-   (~> (state/left (eventually ltl) r seq)
-       (state/left (until true ltl) r seq))]
+   (~> (state/left (in-hole ltl-expand-ctx
+                            (eventually ltl))
+                   r seq)
+       (state/left (in-hole ltl-expand-ctx
+                            (until true ltl))
+                   r seq))]
   [
    --- "globally"
-   (~> (state/left (globally ltl) r seq)
-       (state/left (not (eventually (not ltl))) r seq))])
+   (~> (state/left (in-hole ltl-expand-ctx
+                            (globally ltl))
+                   r seq)
+       (state/left (in-hole ltl-expand-ctx
+                            (not (eventually (not ltl))))
+                   r seq))])
 
 (module+ test
   (check-true
@@ -113,7 +137,16 @@
                        (state/left false #f empty))))
   (check-true
    (judgment-holds (~> (state/left (first zero?) ? (cons #f (cons zero empty)))
-                       (state/left false #f (cons zero empty))))))
+                       (state/left false #f (cons zero empty)))))
+
+  (check-equal?
+   (first (apply-reduction-relation*
+           ~>
+           (term (state/left (iff true true) ? (cons #f (cons zero empty))))))
+   (term (state/left
+          (not (or (not (or (not true) true)) (not (or (not true) true))))
+          #t
+          empty))))
 
 
 ;; -------------------- Random parity checking --------------------
@@ -231,4 +264,13 @@
         (term ?)
         (models-equivalent-for? ltl-formula seq)))
   (redex-check ltl-lang (ltl seq)
-               (models-equivalent-for?/empty-guarded (term ltl) (term seq))))
+               (models-equivalent-for?/empty-guarded (term ltl) (term seq)))
+
+  (define-syntax-rule (debug (ltl seq))
+    (begin
+      (displayln "ltl-red:")
+      (displayln
+       (apply-reduction-relation* ltl-red (term (state/left ltl ? seq))))
+      (displayln "~>:")
+      (displayln
+       (apply-reduction-relation* ~> (term (state/left ltl ? seq)))))))

@@ -15,15 +15,17 @@
        (until ltl ltl)
        (not ltl)
        (or ltl ltl)
-       (and ltl ltl)
-       (implies ltl ltl)
-       (iff ltl ltl)
-       (release ltl ltl)
-       (eventually ltl)
-       (globally ltl)
-       ;; (weak-until ltl ltl)
-       ;; (strong-release ltl ltl)
+       ltl-sugar
        ]
+  [ltl-sugar (and ltl ltl)
+             (implies ltl ltl)
+             (iff ltl ltl)
+             (release ltl ltl)
+             (eventually ltl)
+             (globally ltl)
+             ;; (weak-until ltl ltl)
+             ;; (strong-release ltl ltl)
+             ]
   [seq empty
        (cons seq-el seq)]
   [ltl-state-variant state/left state/mid state/right]
@@ -43,6 +45,14 @@
           (meta/until meta-E ltl-state
                       ltl ltl
                       seq)]
+
+  [ltl-expand-ctx hole
+                  (next ltl-expand-ctx)
+                  (until ltl-expand-ctx ltl)
+                  (until ltl ltl-expand-ctx)
+                  (not ltl-expand-ctx)
+                  (or ltl-expand-ctx ltl)
+                  (or ltl ltl-expand-ctx)]
 
   [p predλ-e]
   [seq-el predλ-v]

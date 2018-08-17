@@ -254,7 +254,7 @@
 
 
    (==> (state/left (next ltl) r (cons seq-el seq))
-        (state/right ltl ? seq)
+        (state/left ltl ? seq)
         r-next)
 
 

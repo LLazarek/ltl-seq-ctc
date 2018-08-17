@@ -213,23 +213,21 @@
    ;; themselves from state/left to state/right
    ;; Non-top-level formulas should have this handled by a
    ;; meta-context
-   (--> (state/right true #t seq)
-        (state/left true #t seq)
+   (--> (state/right true r seq)
+        (state/left true r seq)
         r-true/reset)
 
 
    (==> (state/left false r (cons seq-el seq))
         (state/right false #f seq)
         r-false)
-   (--> (state/right false #f seq)
-        (state/left false #f seq)
+   (--> (state/right false r seq)
+        (state/left false r seq)
         r-false/reset)
 
 
    (==> (state/left (first p) r (cons seq-el seq))
         (state/right true #t seq)
-        ;; todo: is this how to write rule premises? Can I use bound
-        ;; variables from the rule like this?
         (side-condition
          (not (equal? (apply-reduction-relation* predλ-red (term (p seq-el)))
                       (list (term #f)))))

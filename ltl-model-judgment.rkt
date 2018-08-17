@@ -24,29 +24,12 @@
        (~> (state/left false r (cons seq-el seq)) (state/left false #f seq))]
 
 
-  ;; This doesn't work??
-  ;; I have tried replacing with the identical expr that works in ltl-model.
-  ;; Still doesn't seem to guard properly.
-  ;; This makes me wonder if `side-condition` behaves the same way for
-  ;; judgment forms as it does for reduction relations. But the docs say they
-  ;; do behave the same way.
-  ;; Nonetheless, manually testing each of the (reduces-with ...) with
-  ;; (term (zero? zero)) produces the expected results (ie not both #t).
-  ;; An interesting thing though is that print statements inside
-  ;; the side-condition never get printed!
-  ;; Doing the same in ltl-red *does* cause the expected printouts
-  ;; (e.g. with `traces`), so it seems that the side condition is being
-  ;; ignored entirely..
-  ;; 
-  [(side-condition (begin
-                     (printf "first/t: checking ~v -/-> #f\n" (term (p seq-el)))
-                     (reduces-with predλ-red : (p seq-el) -/-> #f)))
+  ;; Note the unquote! Necessary in define-judgment-form.
+  [(side-condition ,(reduces-with predλ-red : (p seq-el) -/-> #f))
    --- "first/t"
    (~> (state/left (first p) r (cons seq-el seq))
        (state/left true #t seq))]
-  [(side-condition (begin
-                     (printf "first/f: checking ~v --> #f\n" (term (p seq-el)))
-                     (reduces-with predλ-red : (p seq-el) --> #f)))
+  [(side-condition ,(reduces-with predλ-red : (p seq-el) --> #f))
    --- "first/f"
    (~> (state/left (first p) r (cons seq-el seq))
        (state/left false #f seq))]
@@ -124,7 +107,13 @@
                        (state/left false #f empty))))
   (check-true
    (judgment-holds (~> (state/left (first zero?) ? (cons zero empty))
-                       (state/left true #t empty)))))
+                       (state/left true #t empty))))
+  (check-true
+   (judgment-holds (~> (state/left (first zero?) ? (cons #f empty))
+                       (state/left false #f empty))))
+  (check-true
+   (judgment-holds (~> (state/left (first zero?) ? (cons #f (cons zero empty)))
+                       (state/left false #f (cons zero empty))))))
 
 
 ;; -------------------- Random parity checking --------------------
@@ -147,12 +136,12 @@
     (if (nothing? matching-binding)
         (error "No binding found for ~v in ~v!" sym bindings)
         matching-binding))
-  (define (get-outcome/ctx ltl-formula seq)
+  (define (get-outcome red ltl-formula seq)
     (assert (redex-match? ltl-lang ltl ltl-formula))
     (assert (not (redex-match? ltl-lang empty seq)))
 
     (define end-terms
-      (apply-reduction-relation* ltl-red
+      (apply-reduction-relation* red
                                  (term (state/left ,ltl-formula ? ,seq))))
     (define end-term (first end-terms))
     (define matched/state-variant (redex-match ltl-lang
@@ -169,46 +158,77 @@
 
           [else
            (error "Something went horribly wrong")]))
-  (define-syntax-rule (get-outcome/ctx* ltl-formula seq)
-    (get-outcome/ctx (term ltl-formula) (term seq)))
+  (define-syntax-rule (get-outcome* red ltl-formula seq)
+    (get-outcome red (term ltl-formula) (term seq)))
   
 
 
-  (check-equal? (get-outcome/ctx* (first zero?)
-                                  (cons zero empty))
+  (check-equal? (get-outcome* ltl-red
+                              (first zero?)
+                              (cons zero empty))
                 #t)
-  (check-equal? (get-outcome/ctx* (next (first zero?))
-                                  (cons #f empty))
+  (check-equal? (get-outcome* ltl-red
+                              (next (first zero?))
+                              (cons #f empty))
                 '?)
-  (check-equal? (get-outcome/ctx* (next (first zero?))
-                                  (cons #f (cons ,one empty)))
+  (check-equal? (get-outcome* ltl-red
+                              (next (first zero?))
+                              (cons #f (cons ,one empty)))
                 #f)
-  (check-equal? (get-outcome/ctx* (until (first ,<=3?) (first zero?))
-                                  (cons ,one (cons ,four empty)))
+  (check-equal? (get-outcome* ltl-red
+                              (until (first ,<=3?) (first zero?))
+                              (cons ,one (cons ,four empty)))
                 #f)
-  (check-equal? (get-outcome/ctx* (until (first ,<=3?) (first zero?))
-                                  (cons zero empty))
+  (check-equal? (get-outcome* ltl-red
+                              (until (first ,<=3?) (first zero?))
+                              (cons zero empty))
                 #t)
-  (check-equal? (get-outcome/ctx* (until (first ,<=3?) (first zero?))
-                                  (cons ,one empty))
+  (check-equal? (get-outcome* ltl-red
+                              (until (first ,<=3?) (first zero?))
+                              (cons ,one empty))
                 '?)
-  (check-equal? (get-outcome/ctx* (until (first ,<=3?) (first zero?))
-                                  (cons ,one (cons ,two empty)))
+  (check-equal? (get-outcome* ltl-red
+                              (until (first ,<=3?) (first zero?))
+                              (cons ,one (cons ,two empty)))
                 '?)
 
 
 
-  ;; todo: Doesn't work
-  (define (get-outcome/jf ltl-formula seq)
-    (judgment-holds (~> (state/left ,ltl-formula ? seq)
-                        (state/left ltl outcome seq_1))
-                    outcome))
-  (define-syntax-rule (get-outcome/jf* ltl-formula seq)
-    (get-outcome/jf (term ltl-formula) (term seq)))
+  (define (models-equivalent-for? ltl-formula seq)
+    (define ltl-red-outcome (get-outcome ltl-red ltl-formula seq))
+    (define ~>-outcome (get-outcome ~> ltl-formula seq))
+    (equal? ltl-red-outcome ~>-outcome))
+
+  (define-syntax-rule (models-equivalent-for?* ltl-formula seq)
+    (models-equivalent-for? (term ltl-formula) (term seq)))
+
+  (check-true (models-equivalent-for?*
+               (first zero?)
+               (cons zero empty)))
+  (check-true (models-equivalent-for?*
+               (next (first zero?))
+               (cons #f empty)))
+  (check-true (models-equivalent-for?*
+               (next (first zero?))
+               (cons #f (cons ,one empty))))
+  (check-true (models-equivalent-for?*
+               (until (first ,<=3?) (first zero?))
+               (cons ,one (cons ,four empty))))
+  (check-true (models-equivalent-for?*
+               (until (first ,<=3?) (first zero?))
+               (cons zero empty)))
+  (check-true (models-equivalent-for?*
+               (until (first ,<=3?) (first zero?))
+               (cons ,one empty)))
+  (check-true (models-equivalent-for?*
+               (until (first ,<=3?) (first zero?))
+               (cons ,one (cons ,two empty))))
 
 
-
-  (define (models-equivalent-for ltl-formula seq)
-    (define ctx-outcome (get-outcome/ctx ltl-formula seq))
-    (define jf-outcome (get-outcome/jf ltl-formula seq))
-    (equal? ctx-outcome jf-outcome)))
+  ;; Random testing
+  (define (models-equivalent-for?/empty-guarded ltl-formula seq)
+    (if (redex-match? ltl-lang empty seq)
+        (term ?)
+        (models-equivalent-for? ltl-formula seq)))
+  (redex-check ltl-lang (ltl seq)
+               (models-equivalent-for?/empty-guarded (term ltl) (term seq))))
